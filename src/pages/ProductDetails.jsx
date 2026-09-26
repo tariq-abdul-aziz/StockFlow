@@ -34,6 +34,26 @@ const ProductDetails = () => {
   };
 
   const handleSave = () => {
+    if (Number(editedProduct.lowStockLevel) < 0) {
+      alert("Low stock level cannot be negative.");
+      return;
+    }
+    if (Number(editedProduct.purchasePrice) < 0){
+      alert("Purchase price cannot be negative.")
+      return;
+    }
+    if (Number(editedProduct.sellingPrice) < 0){
+      alert("Selling price cannot be negative.")
+      return;
+    }
+    if (
+      Number(editedProduct.gst) < 0 ||
+      Number(editedProduct.gst) > 100
+    ) {
+      alert("GST must be between 0 and 100.");
+      return;
+    }
+    
     const updatedProducts = savedProducts.map((item) =>
       item.id === editedProduct.id
         ? {

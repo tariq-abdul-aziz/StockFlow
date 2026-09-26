@@ -23,6 +23,12 @@ const Inventory = () => {
     return savedProducts ? JSON.parse(savedProducts) : defaultProducts;
   });
 
+  const categories = [
+    ...new Set(
+      products.map((product) => product.category).filter(Boolean)
+    ),
+  ].sort();
+  
   const getStockStatus = (product) => {
     if (product.currentStock === 0) {
       return "Out";
@@ -323,16 +329,33 @@ const Inventory = () => {
                 className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none"
               >
                 <option value="">All Categories</option>
-                <option value="Laptop">Laptop</option>
-                <option value="Printer">Printer</option>
-                <option value="Networking">Networking</option>
+
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
 
-              <select className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none">
+              {/* Stock Status Filter */}
+              <select 
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none">
                 <option value="">Stock Status</option>
+                <option value="Good">Good</option>
+                <option value="Low">Low</option>
+                <option value="Out">Out</option>
               </select>
-              <select className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none">
+
+              {/* Serial Tracking Filter */}
+              <select 
+              value={serialFilter}
+              onChange={(e) => setSerialFilter(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none">
                 <option value="">Serial Tracking</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
               </select>
             </div>
           </div>

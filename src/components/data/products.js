@@ -32,7 +32,10 @@ export const products = [
           quantity: -2,
         },
       ],
-      serialNumbers: ["SN001", "SN002", "SN003"],
+      serialNumbers: Array.from(
+        {length: 24},
+        (_, index) => `LAP-SN-${String(index + 1).padStart(3, "0")}`
+      ),
     },
 
     {
@@ -48,7 +51,10 @@ export const products = [
       gst: 18,
       hsn: "84433290",
       stockHistory: [],
-      serialNumbers: ["PRI-SN001", "PRI-SN002"],
+      serialNumbers: Array.from(
+        {length: 4},
+        (_, index) => `PRI-SN-${String(index + 1).padStart(3, "0")}`
+      ),
     },
 
     {

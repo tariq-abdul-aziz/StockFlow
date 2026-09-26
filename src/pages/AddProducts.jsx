@@ -30,13 +30,55 @@ const AddProducts = () => {
 
   const handleSave = () => {
     if (!product.productName.trim()) {
+      alert("Please enter product name.");
+      return;
+    }
+
+    if (!product.sku.trim()){
       alert("Please enter SKU.");
       return;
     }
+
     if (!product.category.trim()) {
-      alert("Please select category.");
+      alert("Please enter category.");
       return;
     }
+
+    const normalizedCategory = product.category.trim().replace(/\s+/g," ");
+    
+    if (Number(product.lowStockLevel) < 0) {
+      alert("Low stock level cannot be negative.");
+      return;
+    }
+    if (
+      product.purchasePrice !== "" &&
+      Number(product.purchasePrice) < 0
+    ) {
+      alert("Purchase price cannot be negative.");
+      return;
+    }
+    if (
+      product.purchasePrice !== "" &&
+      Number(product.purchasePrice) < 0
+    ) {
+      alert("Purchase price cannot be negative.");
+      return;
+    }
+    if (
+      product.sellingPrice !== "" &&
+      Number(product.sellingPrice) < 0
+    ) {
+      alert("Selling price cannot be negative.");
+      return;
+    }
+    if (
+      product.gst !== "" &&
+      (Number(product.gst) < 0 || Number(product.gst) > 100)
+    ){
+      alert("GST must be between 0 and 100.")
+      return;
+    }
+
     const savedProducts =
       JSON.parse(localStorage.getItem("products")) || defaultProducts;
 
@@ -52,6 +94,7 @@ const AddProducts = () => {
     const newProduct = {
       ...product,
       id: Date.now(),
+      category: normalizedCategory,
       sku: product.sku.trim().toUpperCase(),
       currentStock: Number(product.currentStock),
       lowStockLevel: Number(product.lowStockLevel),
@@ -103,17 +146,15 @@ const AddProducts = () => {
               className="border border-gray-200 rounded-lg px-3 py-2.5"
             />
 
-            <select
+            <input
+              type="text"
               name="category"
               value={product.category}
               onChange={handleChange}
+              placeholder="Enter category, e.g. Laptop"
               className="border border-gray-200 rounded-lg px-3 py-2.5"
             >
-              <option value="">Select Category</option>
-              <option value="Laptop">Laptop</option>
-              <option value="Printer">Printer</option>
-              <option value="Networking">Networking</option>
-            </select>
+            </input>
 
             <input
               type="number"
