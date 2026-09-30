@@ -60,8 +60,14 @@ const CreateInvoice = () => {
             Create a new invoice for a customer
           </p>
           <div className="flex flex-col">
-            <CustomerDetails />
-            <InvoiceMeta />
+            <CustomerDetails 
+            customer={customer}
+            setCustomer={setCustomer}
+            />
+            <InvoiceMeta 
+            invoiceDetails={invoiceDetails}
+            setInvoiceDetails={setInvoiceDetails}
+            />
             <InvoiceSummary summary={summary} setSummary={setSummary} />
             <InvoiceActions />
           </div>

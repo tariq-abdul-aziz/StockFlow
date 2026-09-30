@@ -1,32 +1,96 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-const CustomerDetails = () => {
-  // customer form data
-  const [customer, setCustomer] = useState({
-    customerName: "",
-    phone: "",
-    gstin: "",
-    email: "",
-    billingAddress: "",
-  });
-  // handle customer input
+const CustomerDetails = ({ customer, setCustomer }) => {
+  const [savedCustomers, setSavedCustomers] = useState([]);
+
+  useEffect(() => {
+    const list = localStorage.getItem("customers");
+    if (list) {
+      setSavedCustomers(JSON.parse(list));
+    }
+  }, []);
+
+  const handleSelectCustomer = (e) => {
+    const selectedId = e.target.value;
+    if (!selectedId) {
+      setCustomer({
+        customerId: null,
+        customerName: "",
+        phone: "",
+        gstin: "",
+        email: "",
+        billingAddress: "",
+      });
+      return;
+    }
+
+    const found = savedCustomers.find(
+      (c) => String(c.id) === String(selectedId),
+    );
+    if (found) {
+      setCustomer({
+        customerId: found.id,
+        customerName: found.name,
+        phone: found.phone || "",
+        gstin: found.gstin || "",
+        email: found.email || "",
+        billingAddress: found.billingAddress || "",
+      });
+    }
+  };
+
   const handleCustomerChange = (e) => {
     const { name, value } = e.target;
     setCustomer((prev) => ({
       ...prev,
       [name]: value,
+      // If user edits manually, unlink customerId if desired or keep as custom
     }));
   };
+  // customer form data
+  // const [customer, setCustomer] = useState({
+  //   customerName: "",
+  //   phone: "",
+  //   gstin: "",
+  //   email: "",
+  //   billingAddress: "",
+  // });
+  // handle customer input
+  // const handleCustomerChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setCustomer((prev) => ({
+  //     ...prev,
+  //     [name]: value,
+  //   }));
+  // };
   return (
     <div>
       <section className="bg-white border- border-gray-200 rounded-xl p-4 sm:p-6">
-        <div className="mb-5">
-          <h2 className="text-base font-semibold text-gray-900">
-            Customer Details
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Select an existing customer or enter customer details
-          </p>
+        <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">
+              Customer Details
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Select an existing customer or enter customer details
+            </p>
+          </div>
+
+          {/* Customer Dropdown */}
+          {savedCustomers.length > 0 && (
+            <select
+              value={customer.customerId || ""}
+              onChange={handleSelectCustomer}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-gray-50 outline-none focus:border-gray-400"
+            >
+              <option value="">-- Choose Existing Customer --</option>
+              {savedCustomers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.phone})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid:cols-2 lg:grid:cols-3 gap-4">
