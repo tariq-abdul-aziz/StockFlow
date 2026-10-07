@@ -1,7 +1,7 @@
 import React from "react";
 
 const InvoiceSummary = ({ summary, setSummary }) => {
-  const subtotal = Number(summary.subTotal) || 0;
+  const subtotal = Number(summary.subtotal) || 0;
   const taxRate = Number(summary.taxRate) || 0;
 
   const taxAmount = (subtotal * taxRate) / 100;
@@ -39,7 +39,7 @@ const InvoiceSummary = ({ summary, setSummary }) => {
               type="number"
               name="subtotal"
               min="0"
-              value={summary.subtotal}
+              value={summary.subtotal ?? ""}
               onChange={handleChange}
               placeholder="0"
               className="w-full border border-gray-200 rounded-lg pl-7 pr-3 py-2.5 text-sm text-right outline-none focus:border-gray-400"
@@ -55,7 +55,7 @@ const InvoiceSummary = ({ summary, setSummary }) => {
               name="taxRate"
               min="0"
               max="100"
-              value={summary.taxRate}
+              value={summary.taxRate ?? ""}
               onChange={handleChange}
               placeholder="0"
               className="w-full border border-gray-200 rounded-lg px-3 pr-8 py-2.5 text-sm text-right outline-none focus:border-gray-400"

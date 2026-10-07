@@ -1,11 +1,11 @@
 import React, {useState} from "react";
 
-const InvoiceMeta = () => {
-  const [invoiceDetails, setInvoiceDetails] = useState({
-    invoiceNumber: "",
-    invoiceDate: "",
-    dueDate: "",
-  });
+const InvoiceMeta = ({invoiceDetails, setInvoiceDetails}) => {
+  // const [invoiceDetails, setInvoiceDetails] = useState({
+  //   invoiceNumber: "",
+  //   invoiceDate: "",
+  //   dueDate: "",
+  // });
 
   // handle invoice details
   const handleInvoiceChange = (e) => {
@@ -35,9 +35,9 @@ const InvoiceMeta = () => {
             <input
               type="text"
               name="invoiceNumber"
-              value={invoiceDetails.invoiceNumber}
+              value={invoiceDetails.invoiceNumber || ""}
               onChange={handleInvoiceChange}
-              placeholder="INV-1025"
+              readOnly
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-400"
             />
           </div>
