@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { FilePlusCorner} from "lucide-react";
-import { Link } from "react-router";
+import { FilePlusCorner, Eye } from "lucide-react";
+import { Link, useNavigate } from "react-router";
 
 const Invoices = () => {
+  const navigate = useNavigate();
+
   // Get real saved invoices from LocalStorage when the page loads
   const [invoices, setInvoices] = useState(() => {
     const saved = localStorage.getItem("invoices");
@@ -18,13 +20,12 @@ const Invoices = () => {
   // Filter invoices by customer name, invoice number, or status
   const filteredInvoices = invoices.filter((inv) => {
     const search = searchTerm.toLowerCase();
-    const matchesSearch = 
-    inv.invoiceNumber?.toLowerCase().includes(search) ||
-    inv.customer?.customerName?.toLowerCase().includes(search) ||
-    inv.customer?.phone?.includes(search);
+    const matchesSearch =
+      inv.invoiceNumber?.toLowerCase().includes(search) ||
+      inv.customer?.customerName?.toLowerCase().includes(search) ||
+      inv.customer?.phone?.includes(search);
 
-    const matchesStatus =
-    statusFilter === "" || inv.status === statusFilter;
+    const matchesStatus = statusFilter === "" || inv.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -69,10 +70,11 @@ const Invoices = () => {
 
             {/* FILTER */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
+              >
                 <option value="">All Statuses</option>
                 <option value="Paid">Paid</option>
                 <option value="Pending">Pending</option>
@@ -90,19 +92,26 @@ const Invoices = () => {
                   <th className="text-left px-5 py-3">Date</th>
                   <th className="text-left px-5 py-3">Amount</th>
                   <th className="text-left px-5 py-3">Status</th>
+                  <th className="text-left px-5 py-3">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-5 py-8 text-center text-gray-500">
+                    <td
+                      colSpan="5"
+                      className="px-5 py-8 text-center text-gray-500"
+                    >
                       No invoices found. Click "+ Create Invoice" to add one.
                     </td>
                   </tr>
                 ) : (
                   filteredInvoices.map((inv) => (
-                    <tr key={inv.invoiceNumber} className="hover:bg-gray-50">
-                      <td className="px-5 py-4 font-mono font-medium text-gray-900">
+                    <tr
+                      key={inv.invoiceNumber}
+                      className="hover:bg-gray-50 cursor-pointer"
+                    >
+                      <td className="px-5 p-4 font-mono font-medium text-gray-900">
                         {inv.invoiceNumber}
                       </td>
                       <td className="px-5 py-4 text-gray-700">
@@ -112,14 +121,30 @@ const Invoices = () => {
                         {inv.invoiceDate || "-"}
                       </td>
                       <td className="px-5 py-4 text-right font-medium text-gray-900">
-                        ₹{Number(inv.total || 0).toLocaleString("en-IN")}
+                        ₹
+                        {Number(inv.total || 0).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                        })}
                       </td>
                       <td className="px-5 py-4 text-center">
                         <span
-                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${inv.status === "Paid" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"}`}
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${inv.status === "Paid" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"}`}
                         >
                           {inv.status || "Pending"}
                         </span>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/invoices/${inv.invoiceNumber}`);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition cursor-pointer shadow-xs"
+                        >
+                          <Eye size={14}  className="text-gray-500"/>
+                          View
+                        </button>
                       </td>
                     </tr>
                   ))

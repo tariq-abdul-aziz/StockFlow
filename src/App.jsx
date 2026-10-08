@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Invoices from "./pages/Invoices";
+import InvoiceDetails from "./pages/InvoiceDetails";
 import ProForma from "./pages/ProForma";
 import Inventory from "./pages/Inventory";
 import StockIn from "./pages/StockIn";
@@ -24,6 +25,7 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/invoices/create" element={<CreateInvoice />} />
+        <Route path="/invoices/:id" element={<InvoiceDetails />} />
         <Route path="/proforma" element={<ProForma />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/inventory/:id" element={<ProductDetails />} />
