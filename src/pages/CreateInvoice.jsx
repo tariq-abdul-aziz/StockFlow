@@ -53,11 +53,20 @@ const CreateInvoice = () => {
     {
       id: Date.now(),
       productId: "",
-      product: 1,
+      product: "",
+      quantity: "",
       rate: "",
       gst: 18,
     },
   ]);
+
+  const [notes, setNotes] = useState(() => {
+    return localStorage.getItem("defaultInvoiceNotes") || "";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("defaultInvoiceNotes", notes);
+  }, [notes]);
 
   // Recalculate subtotal, total, tax, and grand total whenever items change
     useEffect(() => {
@@ -131,6 +140,7 @@ const CreateInvoice = () => {
       subtotal: summary.subtotal,
       taxAmount: summary.taxAmount,
       total: summary.total,
+      notes,
       status: "Pending",
     };
 
@@ -200,6 +210,26 @@ const CreateInvoice = () => {
             />
 
             <InvoiceSummary summary={summary} setSummary={setSummary} />
+
+            {/* Notes / Terms Section */}
+            <section className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 mt-5">
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-gray-900">
+                  Notes / Terms
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Add payment, terms, bank details, or additional notes
+                </p>
+              </div>
+
+              <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Example: Payment is due within 15 days. Bank details: AC: 1234567890, IFSC: ABCD0001234"
+              rows={4}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-400 resize-none"
+              ></textarea>
+            </section>
 
             <InvoiceActions 
             onSave={handleSaveInvoice}
