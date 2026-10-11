@@ -21,6 +21,9 @@ const InvoiceItems = ({ items, setItems }) => {
               product: selected ? selected.productName : "",
               rate: selected ? selected.sellingPrice : "",
               gst: selected?.gst ?? 18,
+              availableStock: selected
+                ? Number(selected.currentStock ?? 0)
+                : null,
             }
           : item,
       ),
@@ -101,10 +104,11 @@ const InvoiceItems = ({ items, setItems }) => {
                   onChange={(e) => handleProductSelect(item.id, e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-gray-400"
                 >
-                  <option value="">Select a product</option>
+                  <option>Select a product</option>
                   {inventory.map((prod) => (
-                    <option key={prod.id} value={prod.id}>
-                      {prod.productName} {prod.sku}
+                    <option key={prod.id} value={prod.id} disabled={Number(prod.currentStock ?? 0) === 0}>
+                      {prod.productName} {prod.sku} - {prod.currentStock} in
+                      stock {Number(prod.currentStock ?? 0) === 0 ? " (Out of Stock)" : ""}
                     </option>
                   ))}
                 </select>
@@ -112,19 +116,43 @@ const InvoiceItems = ({ items, setItems }) => {
 
               {/* Quantity */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Quantity
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-gray-600">
+                    Quantity
+                  </label>
+                  {item.productId && (
+                    <span
+                      className={`text-[11px] font-semibold italic ${
+                        item.availableStock === 0
+                          ? "text-red-600"
+                          : item.availableStock <= 5
+                            ? "text-amber-600"
+                            : "text-emerald-600"
+                      }`}
+                    >
+                      {item.availableStock} avail
+                    </span>
+                  )}
+                </div>
 
                 <input
                   type="number"
                   min="1"
+                  max={item.availableStock !== null && item.availableStock !== undefined ? item.availableStock : ""}
                   value={item.quantity}
-                  onChange={(e) =>
-                    handleItemChange(item.id, "quantity", e.target.value)
-                  }
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    if (item.availableStock !== null && item.availableStock !== undefined && val > item.availableStock) {
+                      handleItemChange(item.id, "quantity", item.availableStock);
+                    } else {
+                      handleItemChange(item.id, "quantity", e.target.value);
+                    }
+                  }}
+                  className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none ${item.availableStock !== null && Number(item.quantity) > item.availableStock ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-gray-400"}`}
                 />
+                {item.availableStock !== null && Number(item.quantity) > item.availableStock && (
+                  <p className="text-[10px] text-red-600 mt-0.5">Exceeds stock ({item.availableStock})</p>
+                )}
               </div>
 
               {/* Rate */}
@@ -150,12 +178,15 @@ const InvoiceItems = ({ items, setItems }) => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   GST %
                 </label>
-                <input type="number" 
-                min="0"
-                max="100"
-                value={item.gst ?? 18}
-                onChange={(e) => handleItemChange(item.id, "gst", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-2.5 text-sm text-center outline-none focus:border-gray-400"
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={item.gst ?? 18}
+                  onChange={(e) =>
+                    handleItemChange(item.id, "gst", e.target.value)
+                  }
+                  className="w-full border border-gray-200 rounded-lg px-2 py-2.5 text-sm text-center outline-none focus:border-gray-400"
                 />
               </div>
 

@@ -87,16 +87,6 @@ const CreateInvoice = () => {
       });
   }, [items]);
 
-    useEffect(() => {
-    const calculatedSubtotal = items.reduce((sum, item) => {
-      return sum + (Number(item.quantity || 0) * (Number(item.rate) || 0))
-    }, 0);
-
-    setSummary((prev) => ({
-      ...prev, subtotal: calculatedSubtotal > 0 ? calculatedSubtotal : prev.subtotal,
-    }));
-  }, [items]);
-
   const navigate = useNavigate();
 
   // Automatically generate invoice number and set today's date when page opens
@@ -118,6 +108,23 @@ const CreateInvoice = () => {
     if (!customer.customerName.trim()) {
       alert("Please enter customer name.")
       return;
+    }
+
+    // Validate each item and check against available stock
+    for (const item of items) {
+      if (!item.product) {
+        alert("Please select a product for all items.");
+        return;
+      }
+      const qty = Number(item.quantity);
+      if (!qty || qty <= 0) {
+        alert(`Please enter a valid quantity for ${item.product}.`);
+        return;
+      }
+      if (item.availableStock !== null && item.availableStock !== undefined && qty > item.availableStock) {
+        alert(`Quantity for "${item.product}" cannot exceed available stock (${item.availableStock}).`);
+        return;
+      }
     }
     if (!summary.subtotal || Number(summary.subtotal) <= 0) {
       alert("Please enter a valid subtotal amount.");
