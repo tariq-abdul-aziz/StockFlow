@@ -4,7 +4,7 @@ import InvoiceMeta from "../components/invoices/InvoiceMeta";
 import InvoiceSummary from "../components/invoices/InvoiceSummary";
 import InvoiceActions from "../components/invoices/InvoiceActions";
 import { Link, useNavigate } from "react-router";
-import { products } from "../components/data/products";
+import { products as defaultProducts } from "../components/data/products";
 import InvoiceItems from "../components/invoices/InvoiceItems";
 
 const CreateInvoice = () => {
@@ -151,11 +151,45 @@ const CreateInvoice = () => {
       status: "Pending",
     };
 
-    // Save updated list to LocalStorage
+    // Deduct stock from products in localstorage
+    const savedProducts = JSON.parse(localStorage.getItem("products")) || defaultProducts;
+
+    const formattedDate = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+    });
+
+    const updatedProducts = savedProducts.map((prod) => {
+      // Find matching item billed in this invoice
+      const matchedItem = items.find((it) => Number(it.productId) === Number(prod.id));
+      if (!matchedItem) return prod;
+
+      const deductQty = Number(matchedItem.quantity) || 0;
+      const nextStock = Math.max(0, Number(prod.currentStock || 0) - deductQty);
+
+      // Create new stock history entry linked to this invoice
+      const historyEntry = {
+        id: Date.now() + Math.random(),
+        date: formattedDate,
+        type: "Stock Out",
+        reason: `Customer Sale (${invoiceDetails.invoiceNumber})`,
+        invoiceNumber: invoiceDetails.invoiceNumber,
+        quantity: -deductQty,
+      };
+
+      return {
+        ...prod,
+        currentStock: nextStock,
+        stockHistory: [historyEntry, ...(prod.stockHistory || [])],
+      };
+    });
+    localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+    // Save updated invoices to localStorage
     const existingInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
     localStorage.setItem("invoices", JSON.stringify([newInvoice, ...existingInvoices]));
 
-    // Updated last invoice counter for future numbering
+    // Updated last invoice counter
     const currentCounter = Number(invoiceDetails.invoiceNumber.replace("INV-", ""));
     localStorage.setItem("lastInvoiceNumber", currentCounter.toString());
 
