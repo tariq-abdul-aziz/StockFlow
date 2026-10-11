@@ -44,24 +44,39 @@ const CreateInvoice = () => {
   });
 
   const [summary, setSummary] = useState({
-    subtotal: "",
-    taxRate: localStorage.getItem("defaultTaxRate") ?? "18",
+    subtotal: 0,
+    taxRate: 0,
+    total: 0,
   });
-
-  useEffect(() => {
-    if (summary.taxRate !== "") {
-      localStorage.setItem("defaultTaxRate", summary.taxRate);
-    }
-  }, [summary.taxRate]);
 
   const [items, setItems] = useState([
     {
       id: Date.now(),
-      product: "",
-      quantity: 1,
+      productId: "",
+      product: 1,
       rate: "",
+      gst: 18,
     },
   ]);
+
+  // Recalculate subtotal, total, tax, and grand total whenever items change
+    useEffect(() => {
+      let subtotalCalc = 0;
+      let taxCalc = 0;
+
+      items.forEach((item) => {
+        const lineBase = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+        const lineTax = (lineBase * (Number(item.gst) || 0)) / 100;
+        subtotalCalc += lineBase;
+        taxCalc += lineTax;
+      });
+
+      setSummary({
+        subtotal: subtotalCalc,
+        taxAmount: taxCalc,
+        total: subtotalCalc + taxCalc,
+      });
+  }, [items]);
 
     useEffect(() => {
     const calculatedSubtotal = items.reduce((sum, item) => {
@@ -113,9 +128,9 @@ const CreateInvoice = () => {
       dueDate: invoiceDetails.dueDate,
       customer,
       items,
-      subtotal: subTotalNum,
-      taxRate: taxRateNum,
-      total,
+      subtotal: summary.subtotal,
+      taxAmount: summary.taxAmount,
+      total: summary.total,
       status: "Pending",
     };
 

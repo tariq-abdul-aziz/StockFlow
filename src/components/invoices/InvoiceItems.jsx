@@ -20,6 +20,7 @@ const InvoiceItems = ({ items, setItems }) => {
               productId: selected ? selected.id : "",
               product: selected ? selected.productName : "",
               rate: selected ? selected.sellingPrice : "",
+              gst: selected?.gst ?? 18,
             }
           : item,
       ),
@@ -48,6 +49,7 @@ const InvoiceItems = ({ items, setItems }) => {
         product: "",
         quantity: 1,
         rate: "",
+        gst: 18,
       },
     ]);
   };
@@ -55,6 +57,7 @@ const InvoiceItems = ({ items, setItems }) => {
   const removeItem = (id) => {
     setItems((prevItems) => prevItems.filter((item) => item.id !== id));
   };
+
   return (
     <section className="mt-5 bg-white border border-gray-200 rounded-xl p-4 sm:p-6">
       <div className="flex items-center justify-between mb-5">
@@ -78,78 +81,113 @@ const InvoiceItems = ({ items, setItems }) => {
       </div>
 
       <div className="space-y-3">
-        {items.map((item, index) => (
-          <div
-            key={item.id}
-            className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
-          >
-            {/* Product Dropdown */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Product
-              </label>
+        {items.map((item) => {
+          const lineTotal =
+            (Number(item.quantity) || 0) * (Number(item.rate) || 0);
 
-              <select
-                value={item.productId || ""}
-                onChange={(e) => handleProductSelect(item.id, e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-gray-400"
-              >
-                <option value="">Select a product</option>
-                {inventory.map((prod) => (
-                  <option key={prod.id} value={prod.id}>
-                    {prod.productName} {prod.sku}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Quantity
-              </label>
-
-              <input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(e) =>
-                  handleItemChange(item.id, "quantity", e.target.value)
-                }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-              />
-            </div>
-
-            {/* Rate */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Rate
-              </label>
-
-              <input
-                type="number"
-                min="0"
-                placeholder="0.00"
-                value={item.rate}
-                onChange={(e) =>
-                  handleItemChange(item.id, "rate", e.target.value)
-                }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
-              />
-            </div>
-
-            {/* Action */}
-            <button
-              type="button"
-              onClick={() => removeItem(item.id)}
-              disabled={item.length === 1}
-              className="flex items-center justify-center gap-2 px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          return (
+            <div
+              key={item.id}
+              className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
             >
-              <Trash2 size={16} />
-              Remove
-            </button>
-          </div>
-        ))}
+              {/* Product Dropdown */}
+              <div className="sm:col-span-4">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Product
+                </label>
+
+                <select
+                  value={item.productId || ""}
+                  onChange={(e) => handleProductSelect(item.id, e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-gray-400"
+                >
+                  <option value="">Select a product</option>
+                  {inventory.map((prod) => (
+                    <option key={prod.id} value={prod.id}>
+                      {prod.productName} {prod.sku}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quantity */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Quantity
+                </label>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) =>
+                    handleItemChange(item.id, "quantity", e.target.value)
+                  }
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
+                />
+              </div>
+
+              {/* Rate */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Rate
+                </label>
+
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0.00"
+                  value={item.rate}
+                  onChange={(e) =>
+                    handleItemChange(item.id, "rate", e.target.value)
+                  }
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"
+                />
+              </div>
+
+              {/* GST % */}
+              <div className="sm:col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  GST %
+                </label>
+                <input type="number" 
+                min="0"
+                max="100"
+                value={item.gst ?? 18}
+                onChange={(e) => handleItemChange(item.id, "gst", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-2 py-2.5 text-sm text-center outline-none focus:border-gray-400"
+                />
+              </div>
+
+              {/* Line Total */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Total
+                </label>
+                <div className="w-full border border-gray-100 bg-gray-50 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-900 text-right">
+                  ₹
+                  {lineTotal.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  })}
+                </div>
+              </div>
+
+              {/* Remove */}
+              <div className="sm:col-span-1">
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.id)}
+                  disabled={item.length === 1}
+                  title="Remove item"
+                  className="w-full flex items-center justify-center gap-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Trash2 size={16} />
+                  Remove
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

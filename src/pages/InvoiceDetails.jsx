@@ -57,10 +57,14 @@ const InvoiceDetails = () => {
     }
   };
 
-  const subtotal = Number(invoice.subtotal || invoice.subtotal || 0);
-  const taxRate = Number(invoice.taxRate || 0);
-  const taxAmount = (subtotal * taxRate) / 100;
-  const total = Number(invoice.total || subtotal + taxAmount);
+  const subtotal = Number(invoice.subtotal ?? invoice.subtotal ?? 0);
+  const taxAmount = Number(
+    invoice.taxAmount ?? (invoice.items?.reduce((sum, item) => {
+      const lineBase = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+      return sum + (lineBase * (Number(item.gst) || 0)) / 100;
+    }, 0)) ?? ((subtotal * Number(invoice.taxRate || 0)) / 100)
+  )
+  const total = Number(invoice.total ?? subtotal + taxAmount);
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:p-0 print:bg-white">
       Top Controls Bar - Hidden on print
@@ -153,6 +157,12 @@ const InvoiceDetails = () => {
 
           <div className="sm:text-right space-y-1.5">
             <div>
+              <span className="text-gray-500">Invoice Number: </span>
+              <span className="font-medium text-gray-900">
+                {invoice.invoiceNumber || "-"}
+              </span>
+            </div>
+            <div>
               <span className="text-gray-500">Invoice Date: </span>
               <span className="font-medium text-gray-900">
                 {invoice.invoiceDate || "-"}
@@ -196,6 +206,9 @@ const InvoiceDetails = () => {
                         minimumFractionDigits: 2,
                       })}
                     </td>
+                    <td className="py-4 font-medium text-gray-600">
+                      {item.gst ?? 18}%
+                    </td>
                     <td className="py-4 text-right font-medium text-gray-900">
                       ₹
                       {lineTotal.toLocaleString("en-IN", {
@@ -223,7 +236,7 @@ const InvoiceDetails = () => {
             </div>
 
             <div className="flex justify-between text-gray-600">
-              <span>Tax ({taxRate}%)</span>
+              <span>GST</span>
               <span className="font-medium text-gray-900">
                 ₹
                 {taxAmount.toLocaleString("en-IN", {
@@ -232,9 +245,9 @@ const InvoiceDetails = () => {
               </span>
             </div>
 
-            <div>
+            <div className="flex justify-between text-gray-600">
               <span>Total</span>
-              <span>
+              <span className="font-medium text-gray-900">
                 ₹
                 {total.toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
