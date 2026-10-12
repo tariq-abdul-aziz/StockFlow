@@ -24,6 +24,9 @@ const InvoiceItems = ({ items, setItems }) => {
               availableStock: selected
                 ? Number(selected.currentStock ?? 0)
                 : null,
+              serialTracking: Boolean(selected?.serialTracking),
+              availableSerials: selected?.serialNumbers || [],
+              selectedSerials: [],
             }
           : item,
       ),
@@ -53,8 +56,28 @@ const InvoiceItems = ({ items, setItems }) => {
         quantity: 1,
         rate: "",
         gst: 18,
+        serialTracking: false,
+        availableSerials: [],
+        selectedSerials: [],
       },
     ]);
+  };
+
+  const handleToggleSerial = (itemId, serial) => {
+    setItems((prevItems) =>
+      prevItems.map((item) => {
+        if (item.id !== itemId) return item;
+        const current = item.selectedSerials || [];
+        const exists = current.includes(serial);
+        const updated = exists
+          ? current.filter((s) => s !== serial)
+          : [...current, serial];
+        return {
+          ...item,
+          selectedSerials: updated,
+        };
+      }),
+    );
   };
 
   const removeItem = (id) => {
@@ -106,9 +129,16 @@ const InvoiceItems = ({ items, setItems }) => {
                 >
                   <option>Select a product</option>
                   {inventory.map((prod) => (
-                    <option key={prod.id} value={prod.id} disabled={Number(prod.currentStock ?? 0) === 0}>
+                    <option
+                      key={prod.id}
+                      value={prod.id}
+                      disabled={Number(prod.currentStock ?? 0) === 0}
+                    >
                       {prod.productName} {prod.sku} - {prod.currentStock} in
-                      stock {Number(prod.currentStock ?? 0) === 0 ? " (Out of Stock)" : ""}
+                      stock{" "}
+                      {Number(prod.currentStock ?? 0) === 0
+                        ? " (Out of Stock)"
+                        : ""}
                     </option>
                   ))}
                 </select>
@@ -138,21 +168,37 @@ const InvoiceItems = ({ items, setItems }) => {
                 <input
                   type="number"
                   min="1"
-                  max={item.availableStock !== null && item.availableStock !== undefined ? item.availableStock : ""}
+                  max={
+                    item.availableStock !== null &&
+                    item.availableStock !== undefined
+                      ? item.availableStock
+                      : ""
+                  }
                   value={item.quantity}
                   onChange={(e) => {
                     const val = Number(e.target.value);
-                    if (item.availableStock !== null && item.availableStock !== undefined && val > item.availableStock) {
-                      handleItemChange(item.id, "quantity", item.availableStock);
+                    if (
+                      item.availableStock !== null &&
+                      item.availableStock !== undefined &&
+                      val > item.availableStock
+                    ) {
+                      handleItemChange(
+                        item.id,
+                        "quantity",
+                        item.availableStock,
+                      );
                     } else {
                       handleItemChange(item.id, "quantity", e.target.value);
                     }
                   }}
                   className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none ${item.availableStock !== null && Number(item.quantity) > item.availableStock ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-gray-400"}`}
                 />
-                {item.availableStock !== null && Number(item.quantity) > item.availableStock && (
-                  <p className="text-[10px] text-red-600 mt-0.5">Exceeds stock ({item.availableStock})</p>
-                )}
+                {item.availableStock !== null &&
+                  Number(item.quantity) > item.availableStock && (
+                    <p className="text-[10px] text-red-600 mt-0.5">
+                      Exceeds stock ({item.availableStock})
+                    </p>
+                  )}
               </div>
 
               {/* Rate */}
@@ -216,6 +262,58 @@ const InvoiceItems = ({ items, setItems }) => {
                   Remove
                 </button>
               </div>
+
+              {/* Serial Numbers Selection (if serial tracking is enabled) */}
+              {item.serialTracking && (
+                <div className="col-span-full bg-gray-50border border-gray-200 rounded-lg p-3 mt-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-700">
+                      Select Serial Numbers:
+                    </span>
+                    <span
+                    className={`text-xs font-medium ${
+                      (item.selectedSerials?.length || 0) === Number(item.quantity)
+                      ? "text-emerald-600"
+                      : "text-amber-600"
+                    }`}
+                    >
+                      Selected: {item.selectedSerials?.length || 0} / {item.quantity || 0}
+                    </span>
+                  </div>
+
+                  {(item.availableSerials || []).length == 0 ? (
+                    <p className="text-xs text-red-600">
+                      No serial numbers found in stock for this product.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pt-1">
+                      {item.availableSerials.map((serial) => {
+                        const isChecked = item.selectedSerials?.includes(serial);
+                        return (
+                          <label key={serial}
+                          className={`flex items-center gap-1.5 px-1.5 py-1 rounded border text-xs cursor-pointer select-none transition-colors ${
+                            isChecked
+                            ? "bg-gray-900 border-gray-900 text-white"
+                            : "bg-white border-gray-200 text-gray-700 hover:border-gray-400"
+                          }`}
+                          >
+                            <input type="checkbox" 
+                            className="hidden"
+                            checked={isChecked}
+                            disabled={
+                              !isChecked &&
+                              (item.selectedSerials?.length || 0) >= Number(item.quantity)
+                            }
+                            onChange={() => handleToggleSerial(item.id, serial)}
+                            />
+                            <span>{serial}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
