@@ -125,6 +125,15 @@ const CreateInvoice = () => {
         alert(`Quantity for "${item.product}" cannot exceed available stock (${item.availableStock}).`);
         return;
       }
+
+      // If product has serial tracking, verify exact serial count is picked
+      if (item.serialTracking) {
+        const selectedCount = (item.selectedSerials || []).length;
+        if (selectedCount !== qty) {
+          alert(`Please select exactly ${qty} serial number(s) for "${item.product}". Currently selected: ${selectedCount}`);
+          return;
+        }
+      }
     }
     if (!summary.subtotal || Number(summary.subtotal) <= 0) {
       alert("Please enter a valid subtotal amount.");
@@ -177,9 +186,17 @@ const CreateInvoice = () => {
         quantity: -deductQty,
       };
 
+      // remove selected serial numbers from this product
+      const remainingSerials = prod.serialTracking && matchedItem.selectedSerials?.length
+      ? (prod.serialNumbers || []).filter(
+        (sn) => !matchedItem.selectedSerials.includes(sn)
+      )
+      : prod.serialNumbers || [];
+
       return {
         ...prod,
         currentStock: nextStock,
+        serialNumbers: remainingSerials,
         stockHistory: [historyEntry, ...(prod.stockHistory || [])],
       };
     });

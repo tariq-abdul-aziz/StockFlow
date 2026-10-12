@@ -195,7 +195,12 @@ const InvoiceDetails = () => {
                 return (
                   <tr key={item.id || idx}>
                     <td className="py-4 font-medium text-gray-900">
-                      {item.product || "Untitled Product"}
+                      <div>{item.product || "Untitled Product"}</div>
+                      {item.selectedSerials && item.selectedSerials.length > 0 && (
+                        <div className="text-[11px] font-mono text-gray-500 font-normal mt-1">
+                          SN: {item.selectedSerials.join(", ")}
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 font-medium text-gray-600">
                       {item.quantity}
