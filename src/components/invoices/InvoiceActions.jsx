@@ -1,7 +1,7 @@
 import React from "react";
 import { Save, Printer, Share2 } from "lucide-react";
 
-const InvoiceActions = ({ onSave, invoiceData }) => {
+const InvoiceActions = ({ onSave, invoiceData, isSubmitting }) => {
   const handlePrint = () => {
     window.print();
   };
@@ -53,10 +53,11 @@ const InvoiceActions = ({ onSave, invoiceData }) => {
         <button
           type="button"
           onClick={onSave}
+          disabled={isSubmitting}
           className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
         >
           <Save size={17} />
-          Save Invoice
+          {isSubmitting ? "Saving..." : "Save Invoice"}
         </button>
 
       </div>

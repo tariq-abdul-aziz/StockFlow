@@ -64,6 +64,8 @@ const CreateInvoice = () => {
     return localStorage.getItem("defaultInvoiceNotes") || "";
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     localStorage.setItem("defaultInvoiceNotes", notes);
   }, [notes]);
@@ -105,8 +107,10 @@ const CreateInvoice = () => {
 
   // Check required fields and save new invoice into LocalStorage
   const handleSaveInvoice = () => {
+    if (isSubmitting) return; // Prevent double clicks
+
     if (!customer.customerName.trim()) {
-      alert("Please enter customer name.")
+      alert("Please enter customer name");
       return;
     }
 
@@ -157,6 +161,7 @@ const CreateInvoice = () => {
       taxAmount: summary.taxAmount,
       total: summary.total,
       notes,
+      inventoryDeducted: true, // idempotency marker
       status: "Pending",
     };
 
@@ -172,6 +177,12 @@ const CreateInvoice = () => {
       // Find matching item billed in this invoice
       const matchedItem = items.find((it) => Number(it.productId) === Number(prod.id));
       if (!matchedItem) return prod;
+
+      // duplicate prevention: skip if this invoice was already recorded in history
+      const alreadyLogged = (prod.stockHistory || []).some(
+        (h) => h.invoiceNumber === invoiceDetails.invoiceNumber
+      );
+      if (alreadyLogged) return prod;
 
       const deductQty = Number(matchedItem.quantity) || 0;
       const nextStock = Math.max(0, Number(prod.currentStock || 0) - deductQty);
@@ -204,6 +215,17 @@ const CreateInvoice = () => {
 
     // Save updated invoices to localStorage
     const existingInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+        const isAlreadySaved = existingInvoices.some(
+    (inv) => inv.invoiceNumber === invoiceDetails.invoiceNumber
+    );
+
+    if (isAlreadySaved) {
+      alert(`Invoice ${invoiceDetails.invoiceNumber} has already been saved and its stock deducted.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+
     localStorage.setItem("invoices", JSON.stringify([newInvoice, ...existingInvoices]));
 
     // Updated last invoice counter
@@ -292,6 +314,7 @@ const CreateInvoice = () => {
             <InvoiceActions 
             onSave={handleSaveInvoice}
             invoiceData={invoiceDetails}
+            isSubmitting={isSubmitting}
             />
 
           </div>
