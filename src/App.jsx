@@ -16,6 +16,7 @@ import LoginIn from "./pages/LoginIn";
 import CreateInvoice from "./pages/CreateInvoice";
 import ProductDetails from "./pages/ProductDetails";
 import AddProducts from "./pages/AddProducts";
+import CustomerDetails from "./pages/CustomerDetails";
 
 const App = () => {
   return (
@@ -34,6 +35,7 @@ const App = () => {
         <Route path="/stock-out" element={<StockOut />} />
         <Route path="/notepad" element={<Notepad />} />
         <Route path="/customers" element={<Customers />} />
+        <Route path="/customerDetails" element={<CustomerDetails />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
