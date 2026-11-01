@@ -16,7 +16,7 @@ const CustomerDetails = () => {
   const navigate = useNavigate();
 
   // Load invoices to compute invoice history and tools
-  cosnt[invoices] = useState(() => {
+  const [invoices] = useState(() => {
     const saved = localStorage.getItem("invoices");
     return saved ? JSON.parse(saved) : [];
   });
@@ -50,12 +50,12 @@ const CustomerDetails = () => {
           Customer Not Found
         </h2>
         <p className="text-sm text-gray-500 mt-2">
-          No customer found with ID <span className="font-mono">{id}</span>
+          No customer profile matches ID: <span className="font-mono">{id}</span>
           <Link
             className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm"
             to="/customers"
           >
-            Back to Customers
+            ← Back to Customers
           </Link>
         </p>
       </div>
@@ -64,7 +64,9 @@ const CustomerDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
-        <Link className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
+        <Link 
+        to="/customers"
+        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
           <ArrowLeft size={16} /> Back to Customers
         </Link>
 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Users, Search, Plus, Phone, Mail, MapPin, X } from "lucide-react";
 
 const Customers = () => {
+  const navigate = useNavigate();
+  
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem("customers");
     return saved
@@ -146,7 +148,9 @@ const Customers = () => {
                   </tr>
                 ) : (
                   filteredCustomers.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition">
+                    <tr key={item.id} 
+                    onClick={() => navigate(`/customers/${item.id}`)}
+                    className="hover:bg-gray-50 transition cursor-pointer">
                       <td className="px-5 py-4 font-medium text-gray-900">
                         {item.name}
                       </td>
@@ -169,8 +173,11 @@ const Customers = () => {
                       </td>
                       <td className="px-5 py-4 text-center">
                         <button
-                          onClick={() => handleOpenEdit(item)}
-                          className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-100 transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEdit(item);
+                          }}
+                          className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-100 transition cursor-pointer"
                         >
                           Edit
                         </button>
