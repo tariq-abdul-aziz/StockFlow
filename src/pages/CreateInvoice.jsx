@@ -224,6 +224,29 @@ const CreateInvoice = () => {
       return;
     }
 
+    // Save new customer to customers list if not already registered
+    const existingCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
+    const customerExists = existingCustomers.some((c) => {
+      const matchPhone = customer.phone && c.phone?.trim() === customer.phone.trim();
+      const matchName = c.name?.trim().toLowerCase() === customer.customerName.trim().toLowerCase();
+      return matchPhone || matchName;
+    });
+
+    if (!customerExists && customer.customerName.trim()) {
+      const newCustomerRecord = {
+        id: Date.now(),
+        name: customer.customerName.trim(),
+        phone: customer.phone?.trim() || "",
+        email: customer.email?.trim() || "",
+        gstin: customer.gstin?.trim() || "",
+        billingAddress: customer.billingAddress?.trim() || "",
+      };
+      localStorage.setItem(
+        "customers",
+        JSON.stringify([newCustomerRecord, ...existingCustomers])
+      );
+    }
+
     setIsSubmitting(true);
 
     localStorage.setItem("invoices", JSON.stringify([newInvoice, ...existingInvoices]));
