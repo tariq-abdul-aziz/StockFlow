@@ -23,6 +23,9 @@ const CustomerDetails = () => {
 
   // Filter invoices for this specific customer
   const customerInvoices = invoices.filter((inv) => {
+    if (inv.customer?.customerId && customer?.id) {
+      return String(inv.customer.customerId) === String(customer.id);
+    }
     const invPhone = inv.customer?.phone?.trim();
     const invName = inv.customer?.customerName?.trim().toLowerCase();
     const targetPhone = customer?.phone?.trim();

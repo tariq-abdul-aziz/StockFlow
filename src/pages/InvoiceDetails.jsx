@@ -112,7 +112,7 @@ const InvoiceDetails = () => {
               Invoice
             </span>
             <h2 className="text-2xl font-mono font-bold text-gray-900 mt-0.5">
-              {InvoiceDetails.invoiceNumber}
+              {invoice.invoiceNumber}
             </h2>
             <span
               className={`inline-block mt-2 text-xs px-2.5 py-0.5 rounded-full font-medium ${
