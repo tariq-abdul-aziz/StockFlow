@@ -34,7 +34,7 @@ const AddProducts = () => {
       return;
     }
 
-    if (!product.sku.trim()){
+    if (!product.sku.trim()) {
       alert("Please enter SKU.");
       return;
     }
@@ -44,38 +44,25 @@ const AddProducts = () => {
       return;
     }
 
-    const normalizedCategory = product.category.trim().replace(/\s+/g," ");
-    
+    const normalizedCategory = product.category.trim().replace(/\s+/g, " ");
+
     if (Number(product.lowStockLevel) < 0) {
       alert("Low stock level cannot be negative.");
       return;
     }
-    if (
-      product.purchasePrice !== "" &&
-      Number(product.purchasePrice) < 0
-    ) {
+    if (product.purchasePrice !== "" && Number(product.purchasePrice) < 0) {
       alert("Purchase price cannot be negative.");
       return;
     }
-    if (
-      product.purchasePrice !== "" &&
-      Number(product.purchasePrice) < 0
-    ) {
-      alert("Purchase price cannot be negative.");
-      return;
-    }
-    if (
-      product.sellingPrice !== "" &&
-      Number(product.sellingPrice) < 0
-    ) {
+    if (product.sellingPrice !== "" && Number(product.sellingPrice) < 0) {
       alert("Selling price cannot be negative.");
       return;
     }
     if (
       product.gst !== "" &&
       (Number(product.gst) < 0 || Number(product.gst) > 100)
-    ){
-      alert("GST must be between 0 and 100.")
+    ) {
+      alert("GST must be between 0 and 100.");
       return;
     }
 
@@ -113,8 +100,8 @@ const AddProducts = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-3xl mx-auto">
         <button
-        onClick={() => navigate(-1)}
-        className="text-sm text-gray-500 hover:text-gray-900 cursor-pointer"
+          onClick={() => navigate(-1)}
+          className="text-sm text-gray-500 hover:text-gray-900 cursor-pointer"
         >
           ← Back
         </button>
@@ -153,8 +140,7 @@ const AddProducts = () => {
               onChange={handleChange}
               placeholder="Enter category, e.g. Laptop"
               className="border border-gray-200 rounded-lg px-3 py-2.5"
-            >
-            </input>
+            ></input>
 
             <input
               type="number"
@@ -222,8 +208,9 @@ const AddProducts = () => {
 
           <div className="mt-6 flex justify-end gap-3">
             <button
-              onClick={() => navigate("inventory")}
-              className="px-4 py-2 border-gray-200 rounded-lg"
+              type="button"
+              onClick={() => navigate("/inventory")}
+              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
             >
               Cancel
             </button>

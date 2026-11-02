@@ -103,13 +103,31 @@ const Inventory = () => {
       : -comparison;
     }
 
+    if (sortBy === "sku") {
+      const comparison = (a.sku || "").localeCompare(b.sku || "");
+      return sortDirection === "asc" ? comparison : -comparison;
+    }
+
+    if (sortBy === "category") {
+      const comparison = (a.category || "").localeCompare(b.category || "");
+      return sortDirection === "asc" ? comparison : -comparison;
+    }
+
     if (sortBy === "currentStock") {
       const comparison =
       Number(a.currentStock) - Number(b.currentStock);
-
       return sortDirection === "asc"
       ? comparison
       : -comparison;
+    }
+
+    if (sortBy === "status") {
+      const statusPriority = {Out: 1, Low: 2, Good: 3};
+      const statusA = statusPriority[getStockStatus(a)] || 0;
+      const statusB = statusPriority[getStockStatus(b)] || 0;
+      const comparison = statusA - statusB;
+
+      return sortDirection === "asc" ? comparison : -comparison;
     }
 
     return 0;
@@ -375,11 +393,25 @@ const Inventory = () => {
                       </span>
                     )}
                   </th>
-                  <th className="text-left px-5 py-3 font-medium text-gray-600">
+                  <th
+                  onClick={() => handleSort("sku")}
+                  className="text-left px-5 py-3 font-medium text-gray-600 select-none cursor-pointer">
                     SKU
+                    {sortBy === "sku" && (
+                      <span className="ml-1 font-mono">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
                   </th>
-                  <th className="text-left px-5 py-3 font-medium text-gray-600">
+                  <th 
+                  onClick={() => handleSort("category")}
+                  className="text-left px-5 py-3 font-medium text-gray-600 cursor-pointer select-none">
                     Category
+                    {sortBy === "category" && (
+                      <span className="ml-1 font-mono">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
                   </th>
                   <th 
                   onClick={() => handleSort("currentStock")}
@@ -391,11 +423,18 @@ const Inventory = () => {
                       </span>
                     )}
                   </th>
-                  <th className="text-center px-5 py-3 font-medium text-gray-600">
+                  <th className="text-center px-5 py-3 font-medium text-gray-600 select-none">
                     Serial Tracking
                   </th>
-                  <th className="text-center px-5 py-3 font-medium text-gray-600">
+                  <th 
+                  onClick={() => handleSort("status")}
+                  className="text-center px-5 py-3 font-medium text-gray-600 cursor-pointer select-none">
                     Status
+                    {sortBy === "status" && (
+                      <span className="ml-1 font-mono">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
                   </th>
                   <th className="text-center px-5 py-3 font-medium text-gray-600">
                     Actions
