@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router";
 import {
   ShoppingCart,
@@ -11,14 +11,64 @@ import {
   XCircle,
   ChevronRight,
 } from "lucide-react";
+import { products as defaultProducts } from "./data/products";
 
-const Cards = ({ title, value, change, icon: Icon, theme }) => {
+const Cards = () => {
+  // Load real-time invoices and products from localStorage
+  const [invoices] = useState(() => {
+    const saved = localStorage.getItem("invoices");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [products] = useState(() => {
+    const saved = localStorage.getItem("products");
+    return saved ? JSON.parse(saved) : defaultProducts;
+  });
+
+  // Today's date in YYYY-MM-DD
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  // Today's Sales Total
+  const todaysSales = invoices
+    .filter((inv) => inv.invoiceDate === todayStr)
+    .reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+
+  // Pending Payments Total & Count
+  const pendingInvoices = invoices.filter((inv) => inv.status === "Pending");
+  const pendingAmount = pendingInvoices.reduce(
+    (sum, inv) => sum + (Number(inv.total) || 0),
+    0,
+  );
+
+  // Inventory Metrics
+  const totalStockQty = products.reduce(
+    (sum, prod) => sum + (Number(prod.currentStock) || 0),
+    0,
+  );
+
+  const inventoryValuation = products.reduce((sum, prod) => {
+    const price = Number(prod.purchasePrice || prod.sellingPrice || 0);
+    return sum + (Number(prod.currentStock) || 0) * price;
+  }, 0);
+
+  const lowStockItems = products.filter(
+    (prod) =>
+      Number(prod.currentStock) > 0 &&
+      Number(prod.currentStock) <= Number(prod.lowStockLevel),
+  );
+
+  const outOfStockItems = products.filter(
+    (prod) => Number(prod.currentStock) === 0,
+  );
+
   const mydata = [
     {
       id: 1,
       title: "Today's Sales",
-      value: "₹ 24,350",
-      change: "18% from yesterday",
+      value: `₹ ${todaysSales.toLocaleString("en-IN", {
+        maximumFractionDigits: 0,
+      })}`,
+      change: `${invoices.filter((inv) => inv.invoiceDate === todayStr).length} new today`,
       icon: ShoppingCart,
       bgColor: "bg-blue-50",
       shadowColor: "inset-shadow-blue-200",
@@ -29,8 +79,8 @@ const Cards = ({ title, value, change, icon: Icon, theme }) => {
     {
       id: 2,
       title: "Invoices",
-      value: "142",
-      change: "12 new today",
+      value: invoices.length.toString(),
+      change: `${invoices.filter((inv) => inv.status === "Paid").length} paid`,
       icon: FileText,
       bgColor: "bg-indigo-50",
       shadowColor: "inset-shadow-indigo-200",
@@ -41,8 +91,10 @@ const Cards = ({ title, value, change, icon: Icon, theme }) => {
     {
       id: 3,
       title: "Pending Payment",
-      value: "₹ 12,800",
-      change: "5 unpaid invoices",
+      value: `₹ ${pendingAmount.toLocaleString("en-IN", {
+        maximumFractionDigits: 0,
+      })}`,
+      change: `${pendingInvoices.length} unpaid invoices`,
       icon: Clock,
       bgColor: "bg-amber-50",
       shadowColor: "inset-shadow-amber-200",
@@ -53,7 +105,7 @@ const Cards = ({ title, value, change, icon: Icon, theme }) => {
     {
       id: 4,
       title: "Low Stock Items",
-      value: "8 Items",
+      value: `${lowStockItems.length} Items`,
       change: "Needs reorder",
       icon: AlertTriangle,
       bgColor: "bg-orange-50",
@@ -65,8 +117,10 @@ const Cards = ({ title, value, change, icon: Icon, theme }) => {
     {
       id: 5,
       title: "Inventory Summary",
-      value: "₹ 4,85,000",
-      change: "12 categories",
+      value: `₹ ${inventoryValuation.toLocaleString("en-IN", {
+        maximumFractionDigits: 0,
+      })}`,
+      change: `${new Set(products.map((p) => p.category).filter(Boolean)).size} categories`,
       icon: Package,
       bgColor: "bg-emerald-50",
       shadowColor: "inset-shadow-emerald-200",
@@ -77,7 +131,7 @@ const Cards = ({ title, value, change, icon: Icon, theme }) => {
     {
       id: 6,
       title: "Total Stock Qty",
-      value: "1,240 Pcs",
+      value: `${totalStockQty.toLocaleString("en-IN")} Pcs`,
       change: "In warehouse",
       icon: Boxes,
       bgColor: "bg-purple-50",
@@ -89,7 +143,7 @@ const Cards = ({ title, value, change, icon: Icon, theme }) => {
     {
       id: 7,
       title: "Low Stock",
-      value: "3 Items",
+      value: `${lowStockItems.length} Items`,
       change: "Below minimum",
       icon: TrendingDown,
       bgColor: "bg-rose-50",
@@ -101,7 +155,7 @@ const Cards = ({ title, value, change, icon: Icon, theme }) => {
     {
       id: 8,
       title: "Out of Stock",
-      value: "2 Items",
+      value: `${outOfStockItems.length} Items`,
       change: "Unavailable now",
       icon: XCircle,
       bgColor: "bg-red-50",
