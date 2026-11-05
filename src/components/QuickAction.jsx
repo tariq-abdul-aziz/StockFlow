@@ -1,52 +1,43 @@
 import React from "react";
 import {FilePlusCorner, FileText, Download, Upload, ScanQrCode} from "lucide-react"
+import { Link } from "react-router";
 
 const QuickAction = () => {
-      const actionData = [
+  const actionData = [
     {
       id: 1,
       title: "Create Invoice",
       icon: FilePlusCorner,
-      bgColor: "bg-blue-50",
-      shadowColor: "inset-shadow-blue-200",
       iconColor: "#045DC9",
-      textColor: "text-blue-600",
+      to: "/invoices/create",
     },
     {
       id: 2,
       title: "Pro Forma",
       icon: FileText,
-      bgColor: "bg-indigo-50",
-      shadowColor: "inset-shadow-indigo-200",
       iconColor: "#4F46E5",
-      textColor: "text-indigo-600",
+      to: "/proforma",
     },
     {
       id: 3,
       title: "Stock In",
       icon: Download,
-      bgColor: "bg-amber-50",
-      shadowColor: "inset-shadow-amber-200",
       iconColor: "#D97706",
-      textColor: "text-amber-600",
+      to: "/stock-in",
     },
     {
       id: 4,
       title: "Stock Out",
       icon: Upload,
-      bgColor: "bg-orange-50",
-      shadowColor: "inset-shadow-orange-200",
       iconColor: "#EA580C",
-      textColor: "text-orange-600",
+      to: "/stock-out",
     },
     {
       id: 5,
       title: "Scan Serial Number",
       icon: ScanQrCode,
-      bgColor: "bg-emerald-50",
-      shadowColor: "inset-shadow-emerald-200",
       iconColor: "#059669",
-      textColor: "text-emerald-600",
+      to: "/inventory",
     },
   ];
   return (
@@ -57,17 +48,18 @@ const QuickAction = () => {
           // Grab the icon for this specific card
           const IconComponent = item.icon;
           return (
-            <div
+            <Link
               key={item.id}
+              to={item.to}
               className="bg-gray-50 border border-gray-200 p-4 rounded-xl flex items-center justify-center gap-3 hover:bg-white hover:border-gray-300 transition-colors cursor-pointer"
             >
-              <div className="cardsDetails flex items-center gap-1">
-              <IconComponent size={28} color={item.iconColor} />
+              <div className="cardsDetails flex items-center gap-2">
+              <IconComponent size={24} color={item.iconColor} />
                 <span className="text-sm font-light text-gray-500">
                   {item.title}
                 </span>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
