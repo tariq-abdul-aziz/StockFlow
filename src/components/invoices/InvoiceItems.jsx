@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getGstByHsn } from "../data/hsnCodes";
 import { Plus, Trash2 } from "lucide-react";
 import { products as defaultProducts } from "../data/products";
 
@@ -11,6 +12,8 @@ const InvoiceItems = ({ items, setItems }) => {
 
   const handleProductSelect = (id, selectedProductId) => {
     const selected = inventory.find((p) => p.id === Number(selectedProductId));
+    const fallbackCatalogProduct = defaultProducts.find((p) => p.id === Number (selectedProductId));
+    const resolveHsn = selected?.hsn || fallbackCatalogProduct?.hsn || "";
 
     setItems((prevItems) =>
       prevItems.map((item) =>
@@ -19,8 +22,11 @@ const InvoiceItems = ({ items, setItems }) => {
               ...item,
               productId: selected ? selected.id : "",
               product: selected ? selected.productName : "",
+              hsn: resolveHsn,
               rate: selected ? selected.sellingPrice : "",
-              gst: selected?.gst ?? 18,
+              gst:
+                selected?.gst ??
+                (selected?.hsn ? (getGstByHsn(selected.hsn) ?? 18) : 18),
               availableStock: selected
                 ? Number(selected.currentStock ?? 0)
                 : null,
@@ -35,14 +41,21 @@ const InvoiceItems = ({ items, setItems }) => {
 
   const handleItemChange = (id, field, value) => {
     setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              [field]: value,
-            }
-          : item,
-      ),
+      prevItems.map((item) => {
+        if (item.id !== id) return item;
+
+        const updatedItem = { ...item, [field]: value };
+
+        // When HSN is changed, auto-assign GST percentage if code matches directory
+        if (field === "hsn") {
+          const autoGst = getGstByHsn(value);
+          if (autoGst !== null) {
+            updatedItem.gst = autoGst;
+          }
+        }
+
+        return updatedItem;
+      }),
     );
   };
 
@@ -116,8 +129,8 @@ const InvoiceItems = ({ items, setItems }) => {
               key={item.id}
               className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
             >
-              {/* Product Dropdown */}
-              <div className="sm:col-span-4">
+              {/* Product Dropdown & HSN Input */}
+              <div className="sm:col-span-3">
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Product
                 </label>
@@ -135,13 +148,26 @@ const InvoiceItems = ({ items, setItems }) => {
                       disabled={Number(prod.currentStock ?? 0) === 0}
                     >
                       {prod.productName} {prod.sku} - {prod.currentStock} in
-                      stock{" "}
+                      stock
                       {Number(prod.currentStock ?? 0) === 0
                         ? " (Out of Stock)"
                         : ""}
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* HSN Code Input */}
+              <div className="sm:col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  HSN / SAC
+                </label>
+                <input type="text" 
+                placeholder="e.g. 8671"
+                value={item.hsn || ""}
+                onChange={(e) => handleItemChange(item.id, "hsn", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-gray-400"
+                />
               </div>
 
               {/* Quantity */}
@@ -271,13 +297,15 @@ const InvoiceItems = ({ items, setItems }) => {
                       Select Serial Numbers:
                     </span>
                     <span
-                    className={`text-xs font-medium ${
-                      (item.selectedSerials?.length || 0) === Number(item.quantity)
-                      ? "text-emerald-600"
-                      : "text-amber-600"
-                    }`}
+                      className={`text-xs font-medium ${
+                        (item.selectedSerials?.length || 0) ===
+                        Number(item.quantity)
+                          ? "text-emerald-600"
+                          : "text-amber-600"
+                      }`}
                     >
-                      Selected: {item.selectedSerials?.length || 0} / {item.quantity || 0}
+                      Selected: {item.selectedSerials?.length || 0} /{" "}
+                      {item.quantity || 0}
                     </span>
                   </div>
 
@@ -288,23 +316,29 @@ const InvoiceItems = ({ items, setItems }) => {
                   ) : (
                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pt-1">
                       {item.availableSerials.map((serial) => {
-                        const isChecked = item.selectedSerials?.includes(serial);
+                        const isChecked =
+                          item.selectedSerials?.includes(serial);
                         return (
-                          <label key={serial}
-                          className={`flex items-center gap-1.5 px-1.5 py-1 rounded border text-xs cursor-pointer select-none transition-colors ${
-                            isChecked
-                            ? "bg-gray-900 border-gray-900 text-white"
-                            : "bg-white border-gray-200 text-gray-700 hover:border-gray-400"
-                          }`}
+                          <label
+                            key={serial}
+                            className={`flex items-center gap-1.5 px-1.5 py-1 rounded border text-xs cursor-pointer select-none transition-colors ${
+                              isChecked
+                                ? "bg-gray-900 border-gray-900 text-white"
+                                : "bg-white border-gray-200 text-gray-700 hover:border-gray-400"
+                            }`}
                           >
-                            <input type="checkbox" 
-                            className="hidden"
-                            checked={isChecked}
-                            disabled={
-                              !isChecked &&
-                              (item.selectedSerials?.length || 0) >= Number(item.quantity)
-                            }
-                            onChange={() => handleToggleSerial(item.id, serial)}
+                            <input
+                              type="checkbox"
+                              className="hidden"
+                              checked={isChecked}
+                              disabled={
+                                !isChecked &&
+                                (item.selectedSerials?.length || 0) >=
+                                  Number(item.quantity)
+                              }
+                              onChange={() =>
+                                handleToggleSerial(item.id, serial)
+                              }
                             />
                             <span>{serial}</span>
                           </label>

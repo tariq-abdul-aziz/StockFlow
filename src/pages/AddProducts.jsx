@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
+import { getGstByHsn } from "../components/data/hsnCodes";
 import { products as defaultProducts } from "../components/data/products";
+
 const AddProducts = () => {
   const navigate = useNavigate();
 
@@ -22,10 +24,22 @@ const AddProducts = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    setProduct((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setProduct((prev) => {
+      const updated = {
+        ...prev,
+        [name]: type === "checked" ? checked : value,
+      };
+
+      // Automatically auto-fill GST when HSN is entered or matched
+      if(name === "hsn") {
+        const matchedGst = getGstByHsn(value);
+        if (matchedGst !== null) {
+          updated.gst = matchedGst;
+        }
+      }
+
+      return updated;
+    });
   };
 
   const handleSave = () => {

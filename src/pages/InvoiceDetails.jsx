@@ -178,29 +178,31 @@ const InvoiceDetails = () => {
         </div>
 
         {/* Item Table */}
-        <div className="py-8 border-b border-gray-200">
+        <div className="py-8 border-b border-gray-200 uppercase">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase">
-                <th className="pb-3">Item Description</th>
-                <th className="pb-3 text-center">Qty</th>
-                <th className="pb-3 text-right">Rate</th>
+              <tr className="border-b border-gray-200 text-xs font-semibold text-gray-400 text-center">
+                <th className="pb-3 text-left">Item Description</th>
+                <th className="pb-3">Qty</th>
+                <th className="pb-3">Rate</th>
+                <th className="pb-3 text-right">GST %</th>
                 <th className="pb-3 text-right">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y text-center divide-gray-100">
               {(invoice.items || []).map((item, idx) => {
                 const lineTotal =
                   (Number(item.quantity) || 0) * (Number(item.rate) || 0);
                 return (
                   <tr key={item.id || idx}>
-                    <td className="py-4 font-medium text-gray-900">
+                    <td className="py-4 font-medium text-gray-900 text-left">
                       <div>{item.product || "Untitled Product"}</div>
-                      {item.selectedSerials && item.selectedSerials.length > 0 && (
-                        <div className="text-[11px] font-mono text-gray-500 font-normal mt-1">
-                          SN: {item.selectedSerials.join(", ")}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-3 text-[11px] font-mono text-gray-500 font-normal mt-0.5">
+                        {item.hsn && <span>HSN: {item.hsn}
+                          {item.selectedSerials && item.selectedSerials.length > 0 && (
+                            <span>SN: {item.selectedSerials.join(", ")}</span>
+                          )}</span>}
+                      </div>
                     </td>
                     <td className="py-4 font-medium text-gray-600">
                       {item.quantity}
@@ -211,10 +213,10 @@ const InvoiceDetails = () => {
                         minimumFractionDigits: 2,
                       })}
                     </td>
-                    <td className="py-4 font-medium text-gray-600">
+                    <td className="py-4 font-medium text-gray-600 text-right">
                       {item.gst ?? 18}%
                     </td>
-                    <td className="py-4 text-right font-medium text-gray-900">
+                    <td className="py-4 font-medium text-gray-900 text-right">
                       ₹
                       {lineTotal.toLocaleString("en-IN", {
                         minimumFractionDigits: 2,

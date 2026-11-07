@@ -55,6 +55,7 @@ const CreateInvoice = () => {
       id: Date.now(),
       productId: "",
       product: "",
+      hsn: "",
       quantity: "",
       rate: "",
       gst: 18,
