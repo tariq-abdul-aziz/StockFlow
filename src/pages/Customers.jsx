@@ -1,25 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
-import { Users, Search, Plus, Phone, Mail, MapPin, X } from "lucide-react";
+import { Search, Plus, Phone, Mail, X } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { getCustomers, saveCustomer } from "../services/firestoreService";
 
 const Customers = () => {
   const navigate = useNavigate();
-  
-  const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem("customers");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: 1,
-            name: "Rahul Sharma",
-            phone: "9876543210",
-            email: "rahul@example.com",
-            gstin: "07AAAAA0000A1Z5",
-            billingAddress: "Cannaught Place, New Delhi",
-          },
-        ];
-  });
+  const { currentUser } = useAuth();
+
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -32,49 +22,82 @@ const Customers = () => {
     billingAddress: "",
   });
 
+  const fetchCustomerList = async () => {
+    if (!currentUser.uid) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const data = await getCustomers(currentUser.uid);
+      setCustomers(data);
+    } catch (err) {
+      console.error("Failed to fetch customers:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem("customers", JSON.stringify(customers));
-  }, [customers]);
+    fetchCustomerList();
+  }, [currentUser]);
 
   const handleopenAdd = () => {
     setEditingCustomer(null);
-    setFormData({ name: "", phone: "", email: "", billingAddress: "" });
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      gstin: "",
+      billingAddress: "",
+    });
     setShowModal(true);
   };
 
   const handleOpenEdit = (customer) => {
     setEditingCustomer(customer);
-    setFormData(customer);
+    setFormData({
+      name: customer.name || "",
+      phone: customer.phone || "",
+      email: customer.email || "",
+      gstin: customer.gstin || "",
+      billingAddress: customer.billingAddress || "",
+    });
     setShowModal(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
+    if (!currentUser?.uid) {
+      alert("You must be logged in to save customers.");
+      return;
+    }
+
     if (!formData.name.trim() || !formData.phone.trim()) {
       alert("Name and Phone are required.");
       return;
     }
 
-    if (editingCustomer) {
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === editingCustomer.id ? { ...formData, id: c.id } : c,
-        ),
-      );
-    } else {
-      const newCustomer = {
-        ...formData,
-        id: Date.now(),
-      };
-      setCustomers((prev) => [newCustomer, ...prev]);
+    const customerPayload = {
+      ...formData,
+      id: editingCustomer?.id || Date.now(),
+    };
+
+    try {
+      await saveCustomer(currentUser.uid, customerPayload);
+      alert(editingCustomer ? "Customer updated" : "Customer added!");
+      setShowModal(false);
+      fetchCustomerList();
+    } catch (err) {
+      console.error("Failed to save customer:", err);
+      alert("Failed to save customer: " + err.message);
     }
-    setShowModal(false);
   };
 
   const filteredCustomers = customers.filter(
     (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm) ||
+      c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.phone?.includes(searchTerm) ||
       (c.gstin && c.gstin.toLowerCase().includes(searchTerm.toLowerCase())),
   );
   return (
@@ -121,7 +144,7 @@ const Customers = () => {
         </div>
 
         {/* CUSTOMERS TABLE */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden uppercase">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead
@@ -137,31 +160,43 @@ const Customers = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredCustomers.length === 0 ? (
+                {loading ? (
                   <tr>
                     <td
                       colSpan="5"
                       className="px-5 py-8 text-center text-gray-500"
                     >
-                      No customers found.
+                      Loading...
+                    </td>
+                  </tr>
+                ) : filteredCustomers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="px-5 py-8 text-center text-gray-500"
+                    >
+                      No customers found. Click "+ Add Customer" to create one.
                     </td>
                   </tr>
                 ) : (
                   filteredCustomers.map((item) => (
-                    <tr key={item.id} 
-                    onClick={() => navigate(`/customers/${item.id}`)}
-                    className="hover:bg-gray-50 transition cursor-pointer">
+                    <tr
+                      key={item.id}
+                      onClick={() => navigate(`/customers/${item.id}`)}
+                      className="hover:bg-gray-50 transition cursor-pointer"
+                    >
                       <td className="px-5 py-4 font-medium text-gray-900">
                         {item.name}
                       </td>
-                      <td className="px-5 py-4 text-gray-600 space-x-0.5">
+                      <td className="px-5 py-4 text-gray-600">
                         <div className="flex items-center gap-1.5 text-xs">
                           <Phone size={13} className="text-gray-400" />{" "}
                           {item.phone}
                         </div>
                         {item.email && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <Mail /> {item.email}
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
+                            <Mail size={13} className="text-gray-400" />{" "}
+                            {item.email}
                           </div>
                         )}
                       </td>
@@ -207,7 +242,7 @@ const Customers = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-3">
+            <form onSubmit={handleSave} className="space-y-3 uppercase">
               <div>
                 <label className="text-xs font-medium text-gray-700">
                   Customer Name *
@@ -219,7 +254,7 @@ const Customers = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400 uppercase"
                   placeholder="Enter name"
                 />
               </div>
@@ -235,7 +270,7 @@ const Customers = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400 uppercase"
                   placeholder="Enter phone"
                 />
               </div>
@@ -250,7 +285,7 @@ const Customers = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400 uppercase"
                   placeholder="name@example.com"
                 />
               </div>
@@ -263,24 +298,45 @@ const Customers = () => {
                   type="text"
                   value={formData.gstin}
                   onChange={(e) =>
-                    setFormData({ ...formData, gstin: e.target.value.toUpperCase() })
+                    setFormData({
+                      ...formData,
+                      gstin: e.target.value.toUpperCase(),
+                    })
                   }
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400 uppercase"
                   placeholder="GST Number"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-700">
+                  Billing Address
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.billingAddress}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      billingAddress: e.target.value,
+                    })
+                  }
+                  placeholder="Street address, City, State, PIN Code"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400 resize-none uppercase"
                 />
               </div>
 
               <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
                 <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
-                type="submit"
-                className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                  type="submit"
+                  className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
                 >
                   Save Customer
                 </button>

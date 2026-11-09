@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink, useLocation } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   ReceiptText,
@@ -13,7 +13,9 @@ import {
   Settings,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,6 +32,18 @@ const Sidebar = () => {
     { to: "/reports", icon: Presentation, label: "Reports" },
     { to: "/settings", icon: Settings, label: "Settings" },
   ];
+
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <>
@@ -111,6 +125,15 @@ const Sidebar = () => {
             );
           })}
         </nav>
+        <div className="mt-auto pt-6 border-t border-gray-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 p-3 rounded-lg text-sm text-red-600 hover:bg-red-50 transition cursor-pointer"
+          >
+            <LogOut size={19} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </aside>
     </>
   );

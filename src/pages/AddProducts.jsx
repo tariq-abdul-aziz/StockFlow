@@ -1,11 +1,15 @@
+import { useAuth } from "../context/AuthContext";
+import { saveProduct } from "../services/firestoreService";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { getGstByHsn } from "../components/data/hsnCodes";
 import { products as defaultProducts } from "../components/data/products";
 
 const AddProducts = () => {
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
+  const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState({
     productName: "",
     sku: "",
@@ -15,7 +19,7 @@ const AddProducts = () => {
     serialTracking: false,
     purchasePrice: "",
     sellingPrice: "",
-    gst: 18,
+    gst: 0,
     hsn: "",
     stockHistory: [],
     serialNumbers: [],
@@ -27,11 +31,11 @@ const AddProducts = () => {
     setProduct((prev) => {
       const updated = {
         ...prev,
-        [name]: type === "checked" ? checked : value,
+        [name]: type === "checkbox" ? checked : value,
       };
 
       // Automatically auto-fill GST when HSN is entered or matched
-      if(name === "hsn") {
+      if (name === "hsn") {
         const matchedGst = getGstByHsn(value);
         if (matchedGst !== null) {
           updated.gst = matchedGst;
@@ -42,7 +46,14 @@ const AddProducts = () => {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async (e) => {
+    e.preventDefault();
+
+    if (!currentUser?.uid) {
+      alert("You must be logged in to add a product.");
+      return;
+    }
+
     if (!product.productName.trim()) {
       alert("Please enter product name.");
       return;
@@ -57,8 +68,6 @@ const AddProducts = () => {
       alert("Please enter category.");
       return;
     }
-
-    const normalizedCategory = product.category.trim().replace(/\s+/g, " ");
 
     if (Number(product.lowStockLevel) < 0) {
       alert("Low stock level cannot be negative.");
@@ -80,35 +89,31 @@ const AddProducts = () => {
       return;
     }
 
-    const savedProducts =
-      JSON.parse(localStorage.getItem("products")) || defaultProducts;
-
-    const skuExists = savedProducts.some(
-      (item) => item.sku.toLowerCase() === product.sku.trim().toLowerCase(),
-    );
-
-    if (skuExists) {
-      alert("SKU already exists.");
-      return;
-    }
-
     const newProduct = {
       ...product,
       id: Date.now(),
-      category: normalizedCategory,
-      sku: product.sku.trim().toUpperCase(),
-      currentStock: Number(product.currentStock),
-      lowStockLevel: Number(product.lowStockLevel),
-      purchasePrice: Number(product.purchasePrice),
-      sellingPrice: Number(product.sellingPrice),
-      gst: Number(product.gst),
+      currentStock: Number(product.currentStock) || 0,
+      lowStockLevel: Number(product.lowStockLevel) || 0,
+      purchasePrice:
+        product.purchasePrice !== "" ? Number(product.purchasePrice) : "",
+      sellingPrice:
+        product.sellingPrice !== "" ? Number(product.sellingPrice) : "",
+      gst: product.gst !== "" ? Number(product.gst) : 18,
+      stockHistory: [],
+      createdAt: new Date().toISOString(),
     };
 
-    const updatedProducts = [...savedProducts, newProduct];
-
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-
-    navigate("/inventory");
+    try {
+      setLoading(true);
+      await saveProduct(currentUser.uid, newProduct);
+      alert("Product saved to Cloud Firestore!");
+      navigate("/inventory");
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("Error saving products: " + (error.message || error));
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -135,7 +140,7 @@ const AddProducts = () => {
               placeholder="Product Name"
               value={product.productName}
               onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
+              className="border border-gray-200 rounded-lg px-3 py-2"
             />
 
             <input
@@ -144,7 +149,7 @@ const AddProducts = () => {
               placeholder="SKU"
               value={product.sku}
               onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
+              className="border border-gray-200 rounded-lg px-3 py-2"
             />
 
             <input
@@ -153,8 +158,8 @@ const AddProducts = () => {
               value={product.category}
               onChange={handleChange}
               placeholder="Enter category, e.g. Laptop"
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
-            ></input>
+              className="border border-gray-200 rounded-lg px-3 py-2"
+            />
 
             <input
               type="number"
@@ -163,7 +168,7 @@ const AddProducts = () => {
               placeholder="Low Stock Level"
               value={product.lowStockLevel}
               onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
+              className="border border-gray-200 rounded-lg px-3 py-2"
             />
 
             <input
@@ -173,7 +178,7 @@ const AddProducts = () => {
               placeholder="Purchase Price"
               value={product.purchasePrice}
               onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
+              className="border border-gray-200 rounded-lg px-3 py-2"
             />
 
             <input
@@ -183,7 +188,7 @@ const AddProducts = () => {
               placeholder="Selling Price"
               value={product.sellingPrice}
               onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
+              className="border border-gray-200 rounded-lg px-3 py-2"
             />
 
             <input
@@ -194,7 +199,7 @@ const AddProducts = () => {
               placeholder="GST"
               value={product.gst}
               onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
+              className="border border-gray-200 rounded-lg px-3 py-2"
             />
 
             <input
@@ -203,7 +208,7 @@ const AddProducts = () => {
               placeholder="HSN"
               value={product.hsn}
               onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2.5"
+              className="border border-gray-200 rounded-lg px-3 py-2"
             />
           </div>
 
@@ -230,10 +235,12 @@ const AddProducts = () => {
             </button>
 
             <button
+              type="button"
               onClick={handleSave}
-              className="px-4 py-2 border border-gray-200 rounded-lg"
+              disabled={loading}
+              className="px-4 py-2 border border-gray-200 rounded-lg cursor-pointer"
             >
-              Save Product
+              {loading ? "Saving..." : "Save Product"}
             </button>
           </div>
         </section>

@@ -1,50 +1,59 @@
-import { ArrowLeft, Phone, Mail, MapPin, ReceiptText, Eye } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { ArrowLeft, Phone, Mail, MapPin, ReceiptText, Eye } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { getCustomers, getInvoices } from "../services/firestoreService";
 
 const CustomerDetails = () => {
   const { id } = useParams();
-
-  // Load saved customers from localStorage
-  const [customers] = useState(() => {
-    const saved = localStorage.getItem("customers");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const customer = customers.find((c) => String(c.id) === String(id));
-
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
-  // Load invoices to compute invoice history and tools
-  const [invoices] = useState(() => {
-    const saved = localStorage.getItem("invoices");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [customer, setCustomer] = useState(null);
+  const [customerInvoices, setCustomerInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filter invoices for this specific customer
-  const customerInvoices = invoices.filter((inv) => {
-    if (inv.customer?.customerId && customer?.id) {
-      return String(inv.customer.customerId) === String(customer.id);
-    }
-    const invPhone = inv.customer?.phone?.trim();
-    const invName = inv.customer?.customerName?.trim().toLowerCase();
-    const targetPhone = customer?.phone?.trim();
-    const targetName = customer?.name?.trim().toLowerCase();
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        setLoading(true);
+        const [allCustomers, allInvoices] = await Promise.all([
+          getCustomers(currentUser.uid),
+          getInvoices(currentUser.uid),
+        ]);
+        const matchedCustomer = allCustomers.find(
+          (c) => String(c.id) === String(id),
+        );
+        setCustomer(matchedCustomer || null);
 
-    return (
-      (targetPhone && invPhone === targetPhone) ||
-      (targetName && invName === targetName)
-    );
-  });
+        if (matchedCustomer) {
+          const invList = allInvoices.filter((inv) => {
+            if (inv.customer?.customerId) {
+              return (
+                String(inv.customer.customerId) === String(matchedCustomer.id)
+              );
+            }
+            const invPhone = inv.customer?.phone?.trim();
+            const invName = inv.customer?.customerName?.trim().toLowerCase();
+            const targetPhone = matchedCustomer.phone?.trim();
+            const targetName = matchedCustomer.name?.trim().toLowerCase();
 
-  const totalBilled = customerInvoices.reduce(
-    (sum, inv) => sum + (Number(inv.total) || 0),
-    0,
-  );
-
-  const pendingAmount = customerInvoices
-    .filter((inv) => inv.status === "Pending")
-    .reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+            return (
+              (targetPhone && invPhone === targetPhone) ||
+              (targetName && invName === targetName)
+            );
+          });
+          setCustomerInvoices(invList);
+        }
+      } catch (err) {
+        console.error("Error loading customer profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentUser, id]);
 
   if (!customer) {
     return (
@@ -53,7 +62,8 @@ const CustomerDetails = () => {
           Customer Not Found
         </h2>
         <p className="text-sm text-gray-500 mt-2">
-          No customer profile matches ID: <span className="font-mono">{id}</span>
+          No customer profile matches ID:{" "}
+          <span className="font-mono">{id}</span>
           <Link
             className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm"
             to="/customers"
@@ -64,12 +74,23 @@ const CustomerDetails = () => {
       </div>
     );
   }
+
+  const totalBilled = customerInvoices.reduce(
+    (sum, inv) => sum + (Number(inv.total) || 0),
+    0,
+  );
+
+  const pendingAmount = customerInvoices
+    .filter((inv) => inv.status === "Pending")
+    .reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
-        <Link 
-        to="/customers"
-        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
+        <Link
+          to="/customers"
+          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
+        >
           <ArrowLeft size={16} /> Back to Customers
         </Link>
 
@@ -174,63 +195,69 @@ const CustomerDetails = () => {
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
-                        <tr>
-                            <th className="text-left px-5 py-3">Invoice #</th>
-                            <th className="text-left px-5 py-3">Date</th>
-                            <th className="text-left px-5 py-3">Amount</th>
-                            <th className="text-left px-5 py-3">Status</th>
-                            <th className="text-left px-5 py-3">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {customerInvoices.length === 0 ? (
-                            <tr>
-                                <td colSpan="5" className="px-5 py-8 text-center text-gray-500">
-                                    No invoices found for this customer.
-                                </td>
-                            </tr>
-                        ) : (
-                            customerInvoices.map((inv) => (
-                                <tr key={inv.invoiceNumber} className="hover:bg-gray-50">
-                                    <td className="px-5 py-4 font-mono font-medium text-gray-900">
-                                        {inv.invoiceNumber}
-                                    </td>
-                                    <td className="px-5 py-4 text-gray-500">
-                                        {inv.invoiceDate || "-"}
-                                    </td>
-                                    <td className="px-5 py-4 text-right font-medium text-gray-900">
-                                        ₹{Number(inv.total || 0).toLocaleString("en-IN", {
-                                            minimumFractionDigits: 2,
-                                        })}
-                                    </td>
-                                    <td className="px-5 py-4 text-center">
-                                        <span
-                                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                                            inv.status === "Paid"
-                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                            : "bg-amber-50 text-amber-600 border border-amber-100"
-                                        }`}
-                                        >
-                                            {inv.status || "Pending"}
-                                        </span>
-                                    </td>
-                                    <td className="px-5 py-4 text-center">
-                                        <button
-                                        type="button"
-                                        onClick={() => navigate(`/invoices/${inv.invoiceNumber}`)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-                                        >
-                                            <Eye size={13} className="text-gray-500" />
-                                            View
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
+                  <tr>
+                    <th className="text-left px-5 py-3">Invoice #</th>
+                    <th className="text-left px-5 py-3">Date</th>
+                    <th className="text-left px-5 py-3">Amount</th>
+                    <th className="text-left px-5 py-3">Status</th>
+                    <th className="text-left px-5 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {customerInvoices.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="5"
+                        className="px-5 py-8 text-center text-gray-500"
+                      >
+                        No invoices found for this customer.
+                      </td>
+                    </tr>
+                  ) : (
+                    customerInvoices.map((inv) => (
+                      <tr key={inv.invoiceNumber} className="hover:bg-gray-50">
+                        <td className="px-5 py-4 font-mono font-medium text-gray-900">
+                          {inv.invoiceNumber}
+                        </td>
+                        <td className="px-5 py-4 text-gray-500">
+                          {inv.invoiceDate || "-"}
+                        </td>
+                        <td className="px-5 py-4 text-right font-medium text-gray-900">
+                          ₹
+                          {Number(inv.total || 0).toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td className="px-5 py-4 text-center">
+                          <span
+                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                              inv.status === "Paid"
+                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                : "bg-amber-50 text-amber-600 border border-amber-100"
+                            }`}
+                          >
+                            {inv.status || "Pending"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(`/invoices/${inv.invoiceNumber}`)
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                          >
+                            <Eye size={13} className="text-gray-500" />
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>

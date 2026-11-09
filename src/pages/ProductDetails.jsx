@@ -1,29 +1,64 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router";
-import { products as defaultProducts } from "../components/data/products";
+import { useAuth } from "../context/AuthContext";
+import { getProducts, saveProduct } from "../services/firestoreService";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
 
-  const savedProducts =
-    JSON.parse(localStorage.getItem("products")) || defaultProducts;
-
-  const product = savedProducts.find((item) => item.id === Number(id));
-
-  const serialNumbers = product?.serialNumbers || [];
-
+  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedProduct, setEditedProduct] = useState(product);
+  const [editedProduct, setEditedProduct] = useState(null);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        setLoading(true);
+        const allProducts = await getProducts(currentUser.uid);
+        const matched = allProducts.find((item) => String(item.id) === String(id));
+        setProduct(matched || null);
+        setEditedProduct(matched || null);
+      } catch (err) {
+        console.error("Error fetching product details:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [currentUser, id]);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <p className="text-sm text-gray-500">
+          Loading product details...
+        </p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <h1 className="text-xl font-semibold">Product not found</h1>
+        <h1 className="text-xl font-semibold">
+          Product not found
+        </h1>
+        <Link
+        to="/inventory"
+        className="mt-4 inline-block px-4 py-2 bg-gray-900 text-white rounded-lg text-sm"
+        >
+          Back to Inventory
+        </Link>
       </div>
     );
   }
+
+  const serialNumbers = product.serialNumbers || [];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,17 +68,17 @@ const ProductDetails = () => {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (Number(editedProduct.lowStockLevel) < 0) {
       alert("Low stock level cannot be negative.");
       return;
     }
-    if (Number(editedProduct.purchasePrice) < 0){
-      alert("Purchase price cannot be negative.")
+    if (Number(editedProduct.purchasePrice) < 0) {
+      alert("Purchase price cannot be negative.");
       return;
     }
-    if (Number(editedProduct.sellingPrice) < 0){
-      alert("Selling price cannot be negative.")
+    if (Number(editedProduct.sellingPrice) < 0) {
+      alert("Selling price cannot be negative.");
       return;
     }
     if (
@@ -53,21 +88,24 @@ const ProductDetails = () => {
       alert("GST must be between 0 and 100.");
       return;
     }
-    
-    const updatedProducts = savedProducts.map((item) =>
-      item.id === editedProduct.id
-        ? {
-            ...editedProduct,
-            lowStockLevel: Number(editedProduct.lowStockLevel),
-            purchasePrice: Number(editedProduct.purchasePrice),
-            sellingPrice: Number(editedProduct.sellingPrice),
-            gst: Number(editedProduct.gst),
-          }
-        : item,
-    );
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    setIsEditing(false);
-    alert("Product updated successfully.");
+
+    const payload = {
+      ...editedProduct,
+      lowStockLevel: Number(editedProduct.lowStockLevel),
+      purchasePrice: Number(editedProduct.purchasePrice),
+      sellingPrice: Number(editedProduct.sellingPrice),
+      gst: Number(editedProduct.gst),
+    };
+
+    try {
+      await saveProduct(currentUser.uid, payload);
+      setProduct(payload);
+      setIsEditing(false);
+      alert("Product updated in Cloud Database successfully!");
+    } catch (err) {
+      console.error("Failed to update product:", err);
+      alert("Error updating product: " + err.message);
+    }
   };
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -198,8 +236,7 @@ const ProductDetails = () => {
                 />
               ) : (
                 <p className="mt-1 font-semibold">
-                  ₹{" "}
-                  {Number(editedProduct.purchasePrice).toLocaleString("en-IN")}
+                  ₹ {Number(editedProduct.purchasePrice || 0).toLocaleString("en-IN")}
                 </p>
               )}
             </div>
@@ -219,7 +256,7 @@ const ProductDetails = () => {
                 />
               ) : (
                 <p>
-                  ₹ {Number(editedProduct.sellingPrice).toLocaleString("en-IN")}
+                  ₹ {Number(editedProduct.sellingPrice || 0).toLocaleString("en-IN")}
                 </p>
               )}
             </div>
@@ -251,15 +288,15 @@ const ProductDetails = () => {
 
               {isEditing ? (
                 <input
-                  type="number"
+                  type="text"
                   name="hsn"
-                  value={editedProduct.hsn}
+                  value={editedProduct.hsn || ""}
                   onChange={handleChange}
                   className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                 />
               ) : (
                 <p className="mt-1 font-semibold text-gray-900">
-                  {product.hsn}
+                  {product.hsn || "-"}
                 </p>
               )}
             </div>
@@ -278,7 +315,7 @@ const ProductDetails = () => {
             </p>
           </div>
 
-          {product.stockHistory.length === 0 ? (
+          {!product.stockHistory || product.stockHistory.length === 0 ? (
             <p className="text-sm text-gray-500">No stock history available.</p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -337,8 +374,10 @@ const ProductDetails = () => {
             <p className="text-sm text-gray-500">No serial numbers available</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {serialNumbers.map((serialNumber) => (
-                <div className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700">
+              {serialNumbers.map((serialNumber, idx) => (
+                <div 
+                key={idx}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700">
                   {serialNumber}
                 </div>
               ))}

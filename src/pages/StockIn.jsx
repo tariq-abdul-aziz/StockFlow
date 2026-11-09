@@ -1,78 +1,64 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router";
-import { products as defaultProducts } from "../components/data/products";
+import { useAuth } from "../context/AuthContext";
+import { getProducts, saveProduct } from "../services/firestoreService";
 
 const StockIn = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
   const [searchParams] = useSearchParams();
-
   const productFromUrl = searchParams.get("product");
+  const { currentUser } = useAuth();
 
-  const [products, setProducts] = useState(() => {
-    const savedProducts = localStorage.getItem("products");
-    return savedProducts ? JSON.parse(savedProducts) : defaultProducts;
-  });
-
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedProductId, setSelectedProductId] = useState(
     productFromUrl || "",
   );
   const [quantity, setQuantity] = useState("");
   const [serialNumbers, setSerialNumbers] = useState("");
 
+  useEffect(() => {
+    const fetchInventory = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        setLoading(true);
+        const data = await getProducts(currentUser.uid);
+        setProducts(data);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInventory();
+  }, [currentUser]);
+
   const selectedProduct = products.find(
-    (product) => product.id === Number(selectedProductId),
+    (product) => String(product.id) === String(selectedProductId),
   );
 
-  const handleStockIn = () => {
+  const handleStockIn = async () => {
     if (!selectedProduct) {
       alert("Please select a product.");
       return;
     }
 
     const stockQuantity = Number(quantity);
-
     if (!Number.isInteger(stockQuantity) || stockQuantity <= 0) {
       alert("Please enter a valid quantity.");
       return;
     }
 
     let newSerialNumbers = [];
-
     if (selectedProduct.serialTracking) {
       newSerialNumbers = serialNumbers
         .split("\n")
-        .map((serial) => serial.trim())
+        .map((s) => s.trim())
         .filter(Boolean);
 
       if (newSerialNumbers.length !== stockQuantity) {
         alert(`Please enter exactly ${stockQuantity} serial numbers.`);
-        return;
-      }
-
-      const normalizedNewSerials = newSerialNumbers.map((serial) =>
-        serial.toLowerCase(),
-      );
-
-      const hasInputDuplicates =
-        new Set(normalizedNewSerials).size !== normalizedNewSerials.length;
-
-      if (hasInputDuplicates) {
-        alert("Duplicate serial numbers are not allowed");
-        return;
-      }
-
-      const existingSerials = (selectedProduct.serialNumbers || []).map(
-        (serial) => serial.toLowerCase(),
-      );
-
-      const alreadyExists = normalizedNewSerials.some((serial) =>
-        existingSerials.includes(serial),
-      );
-
-      if (alreadyExists) {
-        alert("One or more serial numbers already exist.");
         return;
       }
     }
@@ -87,38 +73,28 @@ const StockIn = () => {
       quantity: stockQuantity,
     };
 
-    const updatedProducts = products.map((product) => {
-      if (product.id !== selectedProduct.id) {
-        return product;
+    const updatedProduct = {
+      ...selectedProduct,
+      currentStock: Number(selectedProduct.currentStock || 0) + stockQuantity,
+      stockHistory: [historyEntry, ...(selectedProduct.stockHistory || [])],
+      serialNumbers: selectedProduct.serialTracking
+        ? [...(selectedProduct.serialNumbers || []), ...newSerialNumbers]
+        : selectedProduct.serialNumbers || [],
+    };
+
+    try {
+      await saveProduct(currentUser.uid, updatedProduct);
+      alert("Stock added successfully to Cloud Database.");
+
+      if (location.state?.fromProductDetails) {
+        navigate(-1);
+      } else {
+        navigate(`/inventory/${selectedProduct.id}`, { replace: true });
       }
-
-      return {
-        ...product,
-        currentStock: Number(product.currentStock) + stockQuantity,
-
-        stockHistory: [historyEntry, ...(product.stockHistory || [])],
-
-        serialNumbers: product.serialTracking
-          ? [...(product.serialNumbers || []), ...newSerialNumbers]
-          : product.serialNumbers || [],
-      };
-    });
-
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-
-    setProducts(updatedProducts);
-
-    alert("Stock added successfully.");
-
-    if (location.state?.fromProductDetails) {
-      navigate(-1);
-    } else {
-      navigate(`/inventory/${selectedProduct.id}`, {
-        replace: true,
-      });
+    } catch (err) {
+      console.error("Failed to add stock:", err);
+      alert("Failed to update stock: " + err.message);
     }
-
-    navigate(`/inventory/${selectedProduct.id}`);
   };
   return (
     <div className="min-h-screen bg-gray-50 p-5 sm:p-6 lg:p-8">
@@ -216,7 +192,7 @@ const StockIn = () => {
           <div className="mt-6 flex justify-end gap-3">
             <button
               onClick={() => {
-                if (location.state?.fromProductDetails){
+                if (location.state?.fromProductDetails) {
                   navigate(-1);
                 } else {
                   navigate("/inventory");
@@ -229,6 +205,7 @@ const StockIn = () => {
 
             <button
               onClick={handleStockIn}
+              disabled={loading || !selectedProduct}
               className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm cursor-pointer"
             >
               Add Stock

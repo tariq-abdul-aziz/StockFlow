@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router";
 import { products as defaultProducts } from "../components/data/products";
+import { getProducts } from "../services/firestoreService";
 import { Link } from "react-router";
 
 const Inventory = () => {
@@ -11,24 +13,37 @@ const Inventory = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState("");
   const [serialFilter, setSerialFilter] = useState("");
-  const [sortBy, setSortBy] = useState(""); 
+  const [sortBy, setSortBy] = useState("");
   // sortBy = kis field par sorting ho rahi hai
   const [sortDirection, setSortDirection] = useState("asc");
   // sortDirection = asc / desc
 
   const navigate = useNavigate();
 
-  const [products] = useState(() => {
-    const savedProducts = localStorage.getItem("products");
-    return savedProducts ? JSON.parse(savedProducts) : defaultProducts;
-  });
+  const { currentUser } = useAuth();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        setLoading(true);
+        const data = await getProducts(currentUser.uid);
+        setProducts(data);
+      } catch (err) {
+        console.error("Failed to fetch inventory from Firestore:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInventory();
+  }, [currentUser]);
 
   const categories = [
-    ...new Set(
-      products.map((product) => product.category).filter(Boolean)
-    ),
+    ...new Set(products.map((product) => product.category).filter(Boolean)),
   ].sort();
-  
+
   const getStockStatus = (product) => {
     if (product.currentStock === 0) {
       return "Out";
@@ -98,9 +113,7 @@ const Inventory = () => {
     if (sortBy === "productName") {
       const comparison = a.productName.localeCompare(b.productName);
 
-      return sortDirection === "asc"
-      ? comparison
-      : -comparison;
+      return sortDirection === "asc" ? comparison : -comparison;
     }
 
     if (sortBy === "sku") {
@@ -114,15 +127,12 @@ const Inventory = () => {
     }
 
     if (sortBy === "currentStock") {
-      const comparison =
-      Number(a.currentStock) - Number(b.currentStock);
-      return sortDirection === "asc"
-      ? comparison
-      : -comparison;
+      const comparison = Number(a.currentStock) - Number(b.currentStock);
+      return sortDirection === "asc" ? comparison : -comparison;
     }
 
     if (sortBy === "status") {
-      const statusPriority = {Out: 1, Low: 2, Good: 3};
+      const statusPriority = { Out: 1, Low: 2, Good: 3 };
       const statusA = statusPriority[getStockStatus(a)] || 0;
       const statusB = statusPriority[getStockStatus(b)] || 0;
       const comparison = statusA - statusB;
@@ -135,9 +145,7 @@ const Inventory = () => {
 
   const handleSort = (field) => {
     if (sortBy === field) {
-      setSortDirection((prev) =>
-      prev === "asc" ? "desc" : "asc"
-    );
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortBy(field);
       setSortDirection("asc");
@@ -175,11 +183,11 @@ const Inventory = () => {
 
         <div className="mb-6 flex justify-between">
           <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Inventory</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Inventory</h1>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Search and manage your products and stock
-          </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Search and manage your products and stock
+            </p>
           </div>
 
           {hasActiveFilters && (
@@ -356,10 +364,11 @@ const Inventory = () => {
               </select>
 
               {/* Stock Status Filter */}
-              <select 
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none">
+              <select
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none"
+              >
                 <option value="">Stock Status</option>
                 <option value="Good">Good</option>
                 <option value="Low">Low</option>
@@ -367,10 +376,11 @@ const Inventory = () => {
               </select>
 
               {/* Serial Tracking Filter */}
-              <select 
-              value={serialFilter}
-              onChange={(e) => setSerialFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none">
+              <select
+                value={serialFilter}
+                onChange={(e) => setSerialFilter(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none"
+              >
                 <option value="">Serial Tracking</option>
                 <option value="Yes">Yes</option>
                 <option value="No">No</option>
@@ -383,9 +393,10 @@ const Inventory = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-200 border-b border-gray-200">
                 <tr>
-                  <th 
-                  onClick={() => handleSort("productName")}
-                  className="text-left px-5 py-3 font-medium text-gray-600 cursor-pointer select-none">
+                  <th
+                    onClick={() => handleSort("productName")}
+                    className="text-left px-5 py-3 font-medium text-gray-600 cursor-pointer select-none"
+                  >
                     Product
                     {sortBy === "productName" && (
                       <span className="ml-1">
@@ -394,8 +405,9 @@ const Inventory = () => {
                     )}
                   </th>
                   <th
-                  onClick={() => handleSort("sku")}
-                  className="text-left px-5 py-3 font-medium text-gray-600 select-none cursor-pointer">
+                    onClick={() => handleSort("sku")}
+                    className="text-left px-5 py-3 font-medium text-gray-600 select-none cursor-pointer"
+                  >
                     SKU
                     {sortBy === "sku" && (
                       <span className="ml-1 font-mono">
@@ -403,9 +415,10 @@ const Inventory = () => {
                       </span>
                     )}
                   </th>
-                  <th 
-                  onClick={() => handleSort("category")}
-                  className="text-left px-5 py-3 font-medium text-gray-600 cursor-pointer select-none">
+                  <th
+                    onClick={() => handleSort("category")}
+                    className="text-left px-5 py-3 font-medium text-gray-600 cursor-pointer select-none"
+                  >
                     Category
                     {sortBy === "category" && (
                       <span className="ml-1 font-mono">
@@ -413,9 +426,10 @@ const Inventory = () => {
                       </span>
                     )}
                   </th>
-                  <th 
-                  onClick={() => handleSort("currentStock")}
-                  className="text-center px-5 py-3 font-medium text-gray-600 cursor-pointer select-none">
+                  <th
+                    onClick={() => handleSort("currentStock")}
+                    className="text-center px-5 py-3 font-medium text-gray-600 cursor-pointer select-none"
+                  >
                     Current Stock
                     {sortBy === "currentStock" && (
                       <span className="ml-1">
@@ -426,9 +440,10 @@ const Inventory = () => {
                   <th className="text-center px-5 py-3 font-medium text-gray-600 select-none">
                     Serial Tracking
                   </th>
-                  <th 
-                  onClick={() => handleSort("status")}
-                  className="text-center px-5 py-3 font-medium text-gray-600 cursor-pointer select-none">
+                  <th
+                    onClick={() => handleSort("status")}
+                    className="text-center px-5 py-3 font-medium text-gray-600 cursor-pointer select-none"
+                  >
                     Status
                     {sortBy === "status" && (
                       <span className="ml-1 font-mono">
@@ -486,7 +501,7 @@ const Inventory = () => {
 
                         <td className="px-5 py-4 text-center">
                           <span
-                          className={`text0xs font-medium ${product.serialTracking ? "text-green-600" : "text-gray-500"}`}
+                            className={`text0xs font-medium ${product.serialTracking ? "text-green-600" : "text-gray-500"}`}
                           >
                             {product.serialTracking ? "Yes" : "No"}
                           </span>
@@ -508,32 +523,32 @@ const Inventory = () => {
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button
-                            onClick={(event) => {
-                              event.stopPropagation();
+                              onClick={(event) => {
+                                event.stopPropagation();
 
-                              navigate(`/stock-in?product=${product.id}`,{
-                                state: {
-                                  fromInventory: true,
-                                },
-                              });
-                            }}
-                            className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                                navigate(`/stock-in?product=${product.id}`, {
+                                  state: {
+                                    fromInventory: true,
+                                  },
+                                });
+                              }}
+                              className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
                             >
                               Stock In
                             </button>
 
                             <button
-                            disabled={Number(product.currentStock) === 0}
-                            onClick={(event) => {
-                              event.stopPropagation();
+                              disabled={Number(product.currentStock) === 0}
+                              onClick={(event) => {
+                                event.stopPropagation();
 
-                              navigate(`/stock-out?product=${product.id}`, {
-                                state: {
-                                  fromInventory: true,
-                                },
-                              });
-                            }}
-                            className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                navigate(`/stock-out?product=${product.id}`, {
+                                  state: {
+                                    fromInventory: true,
+                                  },
+                                });
+                              }}
+                              className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               Stock Out
                             </button>
