@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
   ShoppingCart,
@@ -12,18 +12,30 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { products as defaultProducts } from "./data/products";
+import { useAuth } from "../context/AuthContext";
+import { getInvoices, getProducts } from "../services/firestoreService";
 
 const Cards = () => {
-  // Load real-time invoices and products from localStorage
-  const [invoices] = useState(() => {
-    const saved = localStorage.getItem("invoices");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [products] = useState(() => {
-    const saved = localStorage.getItem("products");
-    return saved ? JSON.parse(saved) : defaultProducts;
-  });
+  const {currentUser} = useAuth();
+  const [invoices, setInvoics] = useState([]);
+  const [products, setProducts] = useState([]);
+  
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        const [invData, prodData] = await Promise.all([
+          getInvoices(currentUser.uid),
+          getProducts(currentUser.uid),
+        ]);
+        setInvoics(invData || []);
+        setProducts(prodData || []);
+      } catch (err) {
+        console.error("Failed to load dashboard cards:", err);
+      }
+    };
+    loadDashboardData();
+  }, [currentUser]);
 
   // Today's date in YYYY-MM-DD
   const todayStr = new Date().toISOString().split("T")[0];

@@ -4,10 +4,24 @@ import InvoiceMeta from "../components/invoices/InvoiceMeta";
 import InvoiceSummary from "../components/invoices/InvoiceSummary";
 import InvoiceActions from "../components/invoices/InvoiceActions";
 import { Link, useNavigate } from "react-router";
-import { products as defaultProducts } from "../components/data/products";
 import InvoiceItems from "../components/invoices/InvoiceItems";
+import { useAuth } from "../context/AuthContext";
+import {
+  getCustomers,
+  getInvoices,
+  getProducts,
+  saveCustomer,
+  saveInvoice,
+  saveProduct,
+} from "../services/firestoreService";
 
 const CreateInvoice = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  const [savedCustomers, setSavedCustomers] = useState([]);
+  const [inventory, setInventory] = useState([]);
+
   // customer form data
   const [customer, setCustomer] = useState({
     customerId: null,
@@ -18,26 +32,6 @@ const CreateInvoice = () => {
     billingAddress: "",
   });
 
-  // Load all saved customers from LocalStorage so we can pick one from a dropdown
-  const [savedCustomers] = useState(() => {
-    const saved = localStorage.getItem("customers");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Automatically create the next invoice number (e.g. INV-001) using LocalStorage history
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    const lastNumber = Number(localStorage.getItem("lastInvoiceNumber") || 0);
-    const nextNumber = lastNumber + 1;
-    const generateInvoiceNumber = `INV-${String(nextNumber).padStart(3, "0")}`;
-
-    setInvoiceDetails({
-      invoiceNumber: generateInvoiceNumber,
-      invoiceDate: today,
-      dueDate: today,
-    });
-  }, []);
-
   const [invoiceDetails, setInvoiceDetails] = useState({
     invoiceNumber: "",
     invoiceDate: "",
@@ -46,7 +40,7 @@ const CreateInvoice = () => {
 
   const [summary, setSummary] = useState({
     subtotal: 0,
-    taxRate: 0,
+    taxAmount: 0,
     total: 0,
   });
 
@@ -68,11 +62,44 @@ const CreateInvoice = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load customers, products, and next invoice number from Firebase
+  useEffect(() => {
+    const loadCloudData = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        const [custList, prodList, invList] = await Promise.all([
+          getCustomers(currentUser.uid),
+          getProducts(currentUser.uid),
+          getInvoices(currentUser.uid),
+        ]);
+
+        setSavedCustomers(custList);
+        setInventory(prodList);
+
+        const today = new Date().toISOString().split("T")[0];
+        let maxNum = 0;
+        invList.forEach((inv) => {
+          const num = Number((inv.invoiceNumber || "").replace("INV-", ""));
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        });
+
+        setInvoiceDetails({
+          invoiceNumber: `INV-${String(maxNum + 1).padStart(3, "0")}`,
+          invoiceDate: today,
+          dueDate: today,
+        });
+      } catch (err) {
+        console.error("Failed to load invoice data:", err);
+      }
+    };
+    loadCloudData();
+  }, [currentUser]);
+
   useEffect(() => {
     localStorage.setItem("defaultInvoiceNotes", notes);
   }, [notes]);
 
-  // Recalculate subtotal, total, tax, and grand total whenever items change
+  // Recalculate subtotal, tax, and grand total whenever items change
   useEffect(() => {
     let subtotalCalc = 0;
     let taxCalc = 0;
@@ -91,25 +118,8 @@ const CreateInvoice = () => {
     });
   }, [items]);
 
-  const navigate = useNavigate();
-
-  // Automatically generate invoice number and set today's date when page opens
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    const lastNumber = Number(localStorage.getItem("lastInvoiceNumber") || 0);
-    const nextNumber = lastNumber + 1;
-    const autoInvoiceNumber = `INV-${String(nextNumber).padStart(3, "0")}`;
-
-    setInvoiceDetails({
-      invoiceNumber: autoInvoiceNumber,
-      invoiceDate: today,
-      dueDate: today,
-    });
-  }, []);
-
-  // Check required fields and save new invoice into LocalStorage
-  const handleSaveInvoice = () => {
-    if (isSubmitting) return; // Prevent double clicks
+  const handleSaveInvoice = async () => {
+    if (isSubmitting || !currentUser?.uid) return;
 
     if (!customer.customerName.trim()) {
       alert("Please enter customer name");
@@ -149,174 +159,109 @@ const CreateInvoice = () => {
         }
       }
     }
+
     if (!summary.subtotal || Number(summary.subtotal) <= 0) {
       alert("Please enter a valid subtotal amount.");
       return;
     }
 
-    // Save updated invoices to localStorage
-    const existingInvoices = JSON.parse(
-      localStorage.getItem("invoices") || "[]",
-    );
-    const isAlreadySaved = existingInvoices.some(
-      (inv) => inv.invoiceNumber === invoiceDetails.invoiceNumber,
-    );
+    try {
+      setIsSubmitting(true);
 
-    if (isAlreadySaved) {
-      alert(
-        `Invoice ${invoiceDetails.invoiceNumber} has already been saved and its stock deducted.`,
+      // 1. Save customer if new
+      let assignedCustomerId = customer.customerId;
+      const matched = savedCustomers.find(
+        (c) =>
+          (assignedCustomerId && String(c.id) === String(assignedCustomerId)) ||
+          (customer.phone && c.phone?.trim() === customer.phone.trim()) ||
+          c.name?.trim().toLowerCase() ===
+            customer.customerName.trim().toLowerCase(),
       );
-      return;
-    }
 
-    setIsSubmitting(true);
+      if (matched) {
+        assignedCustomerId = matched.id;
+      } else {
+        assignedCustomerId = Date.now();
+        await saveCustomer(currentUser.uid, {
+          id: assignedCustomerId,
+          name: customer.customerName.trim(),
+          phone: customer.phone?.trim() || "",
+          email: customer.email?.trim() || "",
+          gstin: customer.gstin?.trim() || "",
+          billingAddress: customer.billingAddress?.trim() || "",
+        });
+      }
 
-    // Check or create customer in database
-    const existingCustomers = JSON.parse(
-      localStorage.getItem("customers") || "[]",
-    );
-    let assignedCustomerId = customer.customerId;
-
-    const matchedCustomer = existingCustomers.find((c) => {
-      if (assignedCustomerId && c.id === assignedCustomerId) return true;
-      const matchPhone =
-        customer.phone && c.phone?.trim() === customer.phone.trim();
-      const matchName =
-        c.name?.trim().toLowerCase() ===
-        customer.customerName.trim().toLowerCase();
-      return matchPhone || matchName;
-    });
-
-    if (matchedCustomer) {
-      assignedCustomerId = matchedCustomer.id;
-    } else if (customer.customerName.trim()) {
-      assignedCustomerId = Date.now();
-      const newCustomerRecord = {
-        id: assignedCustomerId,
-        name: customer.customerName.trim(),
-        phone: customer.phone?.trim() || "",
-        email: customer.email?.trim() || "",
-        gstin: customer.gstin?.trim() || "",
-        billingAddress: customer.billingAddress?.trim() || "",
-      };
-      localStorage.setItem(
-        "customers",
-        JSON.stringify([newCustomerRecord, ...existingCustomers]),
-      );
-    }
-
-    // Build the complete invoice object
-    const newInvoice = {
-      id: Date.now(),
-      invoiceNumber: invoiceDetails.invoiceNumber,
-      invoiceDate: invoiceDetails.invoiceDate,
-      dueDate: invoiceDetails.dueDate,
-      customer: {
-        ...customer,
-        customerId: assignedCustomerId || customer.customerId,
-      },
-      items,
-      subtotal: summary.subtotal,
-      taxAmount: summary.taxAmount,
-      total: summary.total,
-      notes,
-      inventoryDeducted: true, // idempotency marker
-      status: "Pending",
-    };
-
-    // Deduct stock from products in localstorage
-    const savedProducts =
-      JSON.parse(localStorage.getItem("products")) || defaultProducts;
-    const formattedDate = new Date().toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-    });
-
-    const updatedProducts = savedProducts.map((prod) => {
-      // Find matching item billed in this invoice
-      const matchedItem = items.find(
-        (it) => Number(it.productId) === Number(prod.id),
-      );
-      if (!matchedItem) return prod;
-
-      // duplicate prevention: skip if this invoice was already recorded in history
-      const alreadyLogged = (prod.stockHistory || []).some(
-        (h) => h.invoiceNumber === invoiceDetails.invoiceNumber,
-      );
-      if (alreadyLogged) return prod;
-
-      const deductQty = Number(matchedItem.quantity) || 0;
-      const nextStock = Math.max(0, Number(prod.currentStock || 0) - deductQty);
-
-      // Create new stock history entry linked to this invoice
-      const historyEntry = {
-        id: Date.now() + Math.random(),
-        date: formattedDate,
-        type: "Stock Out",
-        reason: `Customer Sale (${invoiceDetails.invoiceNumber})`,
+      // 2. Save invoice to Firebase
+      const newInvoice = {
+        id: Date.now(),
         invoiceNumber: invoiceDetails.invoiceNumber,
-        quantity: -deductQty,
+        invoiceDate: invoiceDetails.invoiceDate,
+        dueDate: invoiceDetails.dueDate,
+        customer: { ...customer, customerId: assignedCustomerId },
+        items,
+        subtotal: summary.subtotal,
+        taxAmount: summary.taxAmount,
+        total: summary.total,
+        notes,
+        inventoryDeducted: true,
+        status: "Pending",
       };
 
-      // remove selected serial numbers from this product
-      const remainingSerials =
-        prod.serialTracking && matchedItem.selectedSerials?.length
-          ? (prod.serialNumbers || []).filter(
-              (sn) => !matchedItem.selectedSerials.includes(sn),
-            )
-          : prod.serialNumbers || [];
+      await saveInvoice(currentUser.uid, newInvoice);
 
-      return {
-        ...prod,
-        currentStock: nextStock,
-        serialNumbers: remainingSerials,
-        stockHistory: [historyEntry, ...(prod.stockHistory || [])],
-      };
-    });
+      // 3. Deduct stock in Firebase
+      const formattedDate = new Date().toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+      });
 
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    localStorage.setItem(
-      "invoices",
-      JSON.stringify([newInvoice, ...existingInvoices]),
-    );
+      for (const item of items) {
+        const prod = inventory.find(
+          (p) => String(p.id) === String(item.productId),
+        );
+        if (!prod) continue;
 
-    // Updated last invoice counter
-    const currentCounter = Number(
-      invoiceDetails.invoiceNumber.replace("INV-", ""),
-    );
-    localStorage.setItem("lastInvoiceNumber", currentCounter.toString());
+        const deductQty = Number(item.quantity) || 0;
+        const nextStock = Math.max(
+          0,
+          Number(prod.currentStock || 0) - deductQty,
+        );
 
-    const currentNumber = Number(
-      invoiceDetails.invoiceNumber.replace("INV-", ""),
-    );
-    localStorage.setItem("lastInvoiceNumber", currentNumber.toString());
+        const historyEntry = {
+          id: Date.now() + Math.random(),
+          date: formattedDate,
+          type: "Stock Out",
+          reason: `Customer Sale (${invoiceDetails.invoiceNumber})`,
+          invoiceNumber: invoiceDetails.invoiceNumber,
+          quantity: -deductQty,
+        };
 
-    alert("Invoice saved successfully!");
-    navigate("/invoices");
+        const remainingSerials =
+          prod.serialTracking && item.selectedSerials?.length
+            ? (prod.serialNumbers || []).filter(
+                (sn) => !item.selectedSerials.includes(sn),
+              )
+            : prod.serialNumbers || [];
+
+        await saveProduct(currentUser.uid, {
+          ...prod,
+          currentStock: nextStock,
+          serialNumbers: remainingSerials,
+          stockHistory: [historyEntry, ...(prod.stockHistory || [])],
+        });
+      }
+
+      alert("Invoice saved successfully!");
+      navigate("/invoices");
+    } catch (err) {
+      console.error("Failed to save invoice:", err);
+      alert("Error saving invoice: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const subTotalNum = Number(summary.subtotal) || 0;
-  const taxRateNum = Number(summary.taxRate) || 0;
-  const taxAmount = (subTotalNum * taxRateNum) / 100;
-  const total = subTotalNum + taxAmount;
-  
-  // handle customer input
-  const handleCustomerChange = (e) => {
-    const { name, value } = e.target;
-    setCustomer((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // handle invoice details
-  const handleInvoiceChange = (e) => {
-    const { name, value } = e.target;
-    setInvoiceDetails((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -345,7 +290,11 @@ const CreateInvoice = () => {
               setInvoiceDetails={setInvoiceDetails}
             />
 
-            <InvoiceItems items={items} setItems={setItems} />
+            <InvoiceItems
+              items={items}
+              setItems={setItems}
+              inventory={inventory}
+            />
 
             <InvoiceSummary summary={summary} setSummary={setSummary} />
 

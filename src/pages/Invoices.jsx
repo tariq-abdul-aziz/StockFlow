@@ -1,15 +1,27 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FilePlusCorner, Eye } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { useAuth } from "../context/AuthContext";
+import { getInvoices } from "../services/firestoreService";
 
 const Invoices = () => {
   const navigate = useNavigate();
+  const { currentUser} = useAuth();
 
-  // Get real saved invoices from LocalStorage when the page loads
-  const [invoices, setInvoices] = useState(() => {
-    const saved = localStorage.getItem("invoices");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [invoices, setInvoices] = useState([]);
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        const data = await getInvoices(currentUser.uid);
+        setInvoices(data || []);
+      } catch ( err) {
+        console.error("Failed to fetch invoices:", err);
+      }
+    };
+    fetchInvoices();
+  }, [currentUser]);
 
   // Box to store whatever text you type in the search bar
   const [searchTerm, setSearchTerm] = useState("");

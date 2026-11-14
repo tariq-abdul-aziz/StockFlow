@@ -1,19 +1,14 @@
 import React, { useState } from "react";
 import { getGstByHsn } from "../data/hsnCodes";
 import { Plus, Trash2 } from "lucide-react";
-import { products as defaultProducts } from "../data/products";
 
-const InvoiceItems = ({ items, setItems }) => {
-  // Load current inventory products from LocalStorage
-  const [inventory] = useState(() => {
-    const saved = localStorage.getItem("products");
-    return saved ? JSON.parse(saved) : defaultProducts;
-  });
-
+const InvoiceItems = ({ items, setItems, inventory = [] }) => {
   const handleProductSelect = (id, selectedProductId) => {
     const selected = inventory.find((p) => p.id === Number(selectedProductId));
-    const fallbackCatalogProduct = defaultProducts.find((p) => p.id === Number (selectedProductId));
-    const resolveHsn = selected?.hsn || fallbackCatalogProduct?.hsn || "";
+    const fallbackCatalogProduct = defaultProducts.find(
+      (p) => p.id === Number(selectedProductId),
+    );
+    const resolveHsn = selected?.hsn || "";
 
     setItems((prevItems) =>
       prevItems.map((item) =>
@@ -162,11 +157,14 @@ const InvoiceItems = ({ items, setItems }) => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   HSN / SAC
                 </label>
-                <input type="text" 
-                placeholder="e.g. 8671"
-                value={item.hsn || ""}
-                onChange={(e) => handleItemChange(item.id, "hsn", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-gray-400"
+                <input
+                  type="text"
+                  placeholder="e.g. 8671"
+                  value={item.hsn || ""}
+                  onChange={(e) =>
+                    handleItemChange(item.id, "hsn", e.target.value)
+                  }
+                  className="w-full border border-gray-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-gray-400"
                 />
               </div>
 

@@ -1,22 +1,39 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, Printer, Share2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { getInvoices } from "../services/firestoreService";
 
 const InvoiceDetails = () => {
   const { id } = useParams();
+  const { currentUser } = useAuth();
+  const [invoices, setInvoices] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [invoices] = useState(() => {
-    const saved = localStorage.getItem("invoices");
-    return saved ? JSON.parse(saved) : [];
-  });
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        const allInvoices = await getInvoices(currentUser.uid);
+        const matched = allInvoices.find(
+          (inv) => inv.invoiceNumber === id || String(inv.id) === String(id),
+        );
+        setInvoices(matched || null);
+      } catch (err) {
+        console.error("Failed to fetch invoice:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInvoice();
+  }, [currentUser, id]);
 
-  const invoice = invoices.find(
-    (inv) => inv.invoiceNumber == id || String(inv.id) === String(id),
-  );
-
-  if (!invoice) {
+  if (!loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+          <p className="text-sm text-gray-500">Loading invoice...</p>
+        </div>
         <h2 className="text-xl font-semibold text-gray-800">
           Invoice Not Found
         </h2>
@@ -59,11 +76,14 @@ const InvoiceDetails = () => {
 
   const subtotal = Number(invoice.subtotal ?? invoice.subtotal ?? 0);
   const taxAmount = Number(
-    invoice.taxAmount ?? (invoice.items?.reduce((sum, item) => {
-      const lineBase = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
-      return sum + (lineBase * (Number(item.gst) || 0)) / 100;
-    }, 0)) ?? ((subtotal * Number(invoice.taxRate || 0)) / 100)
-  )
+    invoice.taxAmount ??
+      invoice.items?.reduce((sum, item) => {
+        const lineBase =
+          (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+        return sum + (lineBase * (Number(item.gst) || 0)) / 100;
+      }, 0) ??
+      (subtotal * Number(invoice.taxRate || 0)) / 100,
+  );
   const total = Number(invoice.total ?? subtotal + taxAmount);
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:p-0 print:bg-white">
@@ -198,10 +218,17 @@ const InvoiceDetails = () => {
                     <td className="py-4 font-medium text-gray-900 text-left">
                       <div>{item.product || "Untitled Product"}</div>
                       <div className="flex items-center gap-3 text-[11px] font-mono text-gray-500 font-normal mt-0.5">
-                        {item.hsn && <span>HSN: {item.hsn}
-                          {item.selectedSerials && item.selectedSerials.length > 0 && (
-                            <span>SN: {item.selectedSerials.join(", ")}</span>
-                          )}</span>}
+                        {item.hsn && (
+                          <span>
+                            HSN: {item.hsn}
+                            {item.selectedSerials &&
+                              item.selectedSerials.length > 0 && (
+                                <span>
+                                  SN: {item.selectedSerials.join(", ")}
+                                </span>
+                              )}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="py-4 font-medium text-gray-600">

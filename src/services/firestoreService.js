@@ -100,3 +100,31 @@ export const saveInvoice = async (userId, invoiceData) => {
   await set(invoiceRef, payload);
   return payload;
 };
+
+// Pro Formas
+export const getProformas = async (userId) => {
+  try {
+    const proformasRef = ref(db, `users/${userId}/proformas`);
+    const snapshot = await get(proformasRef);
+    if (!snapshot.exists()) return[];
+    const list = Object.values(snapshot.val());
+    return list.reverse();
+  } catch (err) {
+    console.error("Error fetching proformas:", err);
+    return [];
+  }
+};
+
+export const saveProforma = async (userId, proformaData) => {
+  const docId = String(proformaData.details?.proformaNumber || Date.now());
+  const proformaRef = ref(db, `users/${userId}/proformas/$docId`);
+
+  const payload = {
+    ...proformaData,
+    id: docId,
+    createdAt: new Date().toISOString(),
+  };
+
+  await set(proformaRef, payload);
+  return payload;
+};

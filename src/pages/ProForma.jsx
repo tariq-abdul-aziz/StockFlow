@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import {Link} from "react-router"
+import { Link, useNavigate } from "react-router";
+import { useAuth } from "../context/AuthContext";
+import { getProformas, saveProforma } from "../services/firestoreService";
 
 const ProForma = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const formatDate = (date) => {
     return date.toISOString().split("T")[0];
   };
@@ -38,23 +44,33 @@ const ProForma = () => {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    const today = new Date();
+    const loadNextNumber = async () => {
+      const today = new Date();
+      const issueDate = formatDate(today);
+      const validUntil = addDays(today, 7);
 
-    const issueDate = formatDate(today);
-    const validUntil = addDays(today, 7);
+      if (!currentUser?.uid) return;
+      try {
+        const list = await getProformas(currentUser.uid);
+        let maxNum = 0;
+        list.forEach((pf) => {
+          const num = Number(
+            (pf.details?.proformaNumber || "").replace("PF-", ""),
+          );
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        });
 
-    const lastNumber = Number(localStorage.getItem("lastProformaNumber") || 0);
-
-    const nextNumber = lastNumber + 1;
-
-    const formattedNumber = `PF-${String(nextNumber).padStart(3, "0")}`;
-
-    setProformaDetails({
-      proformaNumber: formattedNumber,
-      issueDate,
-      validUntil,
-    });
-  }, []);
+        setProformaDetails({
+          proformaNumber: `PF-${String(maxNum + 1).padStart(3, "0")}`,
+          issueDate,
+          validUntil,
+        });
+      } catch (err) {
+        console.error("Failed to fetch proforma number:", err);
+      }
+    };
+    loadNextNumber();
+  }, [currentUser]);
 
   const handleItemChange = (id, field, value) => {
     setItems((prevItems) =>
@@ -88,7 +104,7 @@ const ProForma = () => {
 
   const total = subTotal + taxAmount;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!customer.customerName.trim()) {
       alert("Please enter customer name.");
       return;
@@ -121,6 +137,9 @@ const ProForma = () => {
       alert("Please complete all item details correctly.");
       return;
     }
+
+    if (!currentUser?.uid ||isSubmitting) return;
+
     const proforma = {
       customer,
       details: proformaDetails,
@@ -131,12 +150,18 @@ const ProForma = () => {
       total,
       notes,
     };
-    const currentNumber = Number(
-      proformaDetails.proformaNumber.replace("PF-", ""),
-    );
-    localStorage.setItem("lastProformaNumber", currentNumber.toString());
-    console.log("Pro Forma:", proforma);
-    alert("Pro Forma is ready to save.");
+
+    try {
+      setIsSubmitting(true);
+      await saveProforma(currentUser.uid, proforma);
+      alert("Pro Forma Saved!");
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Failed to save proforma:", err);
+      alert("Error saving Pro Forma: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   return (
     <div className="proformaContainer max-h-screen bg-gray-50 p-4 sm:p-6 lg:-8">

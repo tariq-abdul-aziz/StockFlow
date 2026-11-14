@@ -1,22 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { products as defaultProducts } from "./data/products";
+import { useAuth } from "../context/AuthContext";
+import { getInvoices, getProducts } from "../services/firestoreService";
 
 const ActivitySection = () => {
   const navigate = useNavigate();
+  const {currentUser} = useAuth();
 
-  // Fetch real invoice from localStorage
-  const [invoices] = useState(() => {
-    const saved = localStorage.getItem("invoices");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [invoices, setInvoices] = useState([]);
+  const [products, setProducts] = useState([]);
 
-  // Fetch products to aggregate stock movement history
-  const [products] = useState(() => {
-    const saved = localStorage.getItem("products");
-    return saved ? JSON.parse(saved) : defaultProducts;
-  });
+  useEffect(() => {
+    const loadActivity = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        const [invData, prodData] = await Promise.all([
+          getInvoices(currentUser.uid),
+          getProducts(currentUser.uid),
+        ]);
+        setInvoices(invData || []);
+        setProducts(prodData || []);
+      } catch (err) {
+        console.error("Failed to load dashboard activity:", err);
+      }
+    };
+    loadActivity();
+  }, [currentUser]);
 
   // Take the 3 most recent invoices
   const recentInvoices = invoices.slice(0, 3);
