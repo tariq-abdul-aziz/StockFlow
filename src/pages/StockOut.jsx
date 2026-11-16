@@ -97,7 +97,7 @@ const StockOut = () => {
 
     try {
       await saveProduct(currentUser.uid, updatedProduct);
-      alert("Stock removed successfully from Cloud Database.");
+      alert("Stock dispatch successfully.");
 
       if (location.state?.fromProductDetails) {
         navigate(-1);

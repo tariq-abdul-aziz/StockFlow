@@ -106,7 +106,7 @@ const AddProducts = () => {
     try {
       setLoading(true);
       await saveProduct(currentUser.uid, newProduct);
-      alert("Product saved to Cloud Firestore!");
+      alert("Product saved!");
       navigate("/inventory");
     } catch (error) {
       console.error("Save error:", error);

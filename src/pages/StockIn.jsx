@@ -84,7 +84,7 @@ const StockIn = () => {
 
     try {
       await saveProduct(currentUser.uid, updatedProduct);
-      alert("Stock added successfully to Cloud Database.");
+      alert("Stock added successfully.");
 
       if (location.state?.fromProductDetails) {
         navigate(-1);

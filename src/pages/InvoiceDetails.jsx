@@ -7,7 +7,7 @@ import { getInvoices } from "../services/firestoreService";
 const InvoiceDetails = () => {
   const { id } = useParams();
   const { currentUser } = useAuth();
-  const [invoices, setInvoices] = useState(null);
+  const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +18,7 @@ const InvoiceDetails = () => {
         const matched = allInvoices.find(
           (inv) => inv.invoiceNumber === id || String(inv.id) === String(id),
         );
-        setInvoices(matched || null);
+        setInvoice(matched || null);
       } catch (err) {
         console.error("Failed to fetch invoice:", err);
       } finally {
@@ -28,12 +28,17 @@ const InvoiceDetails = () => {
     fetchInvoice();
   }, [currentUser, id]);
 
-  if (!loading) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <p className="text-sm text-gray-500">Loading invoice...</p>
+      </div>
+    );
+  }
+
+  if (!invoice) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-          <p className="text-sm text-gray-500">Loading invoice...</p>
-        </div>
         <h2 className="text-xl font-semibold text-gray-800">
           Invoice Not Found
         </h2>
@@ -70,7 +75,7 @@ const InvoiceDetails = () => {
         alert("Invoice link copied to clipboard!");
       }
     } catch (err) {
-      console.err("Share failed:", err);
+      console.error("Share failed:", err);
     }
   };
 

@@ -8,7 +8,7 @@ const LoginIn = () => {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {login, signup} = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -22,10 +22,14 @@ const LoginIn = () => {
       setError("");
       setIsSubmitting(true);
       await login(email, password);
+      localStorage.removeItem("defaultInvoiceNotes");
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
-      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+      if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/wrong-password"
+      ) {
         setError("Invalid email and password.");
       } else if (err.code === "auth/user-not-found") {
         setError("No account found with this email.");
@@ -39,7 +43,7 @@ const LoginIn = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    if(!email || !password) {
+    if (!email || !password) {
       setError("Password enter both email and password.");
       return;
     }
@@ -53,6 +57,7 @@ const LoginIn = () => {
       setIsSubmitting(true);
       await signup(email, password);
       alert("Account created successfully!");
+      localStorage.removeItem("defaultInvoiceNotes");
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
@@ -72,58 +77,64 @@ const LoginIn = () => {
       </div>
       <div className="w-full md:w-1/2 h-full flex flex-col gap-4 justify-center items-center p-8 sm:p-16 bg-white">
         <div className="w-full md:1/2 h-full flex flex-col gap-4">
-        <h1 className="font-bold text-3xl text-gray-900">
-          Welcome Back
-        </h1>
-        <p className="text-sm text-gray-500">Sign in to your account or create a new one.</p>
+          <h1 className="font-bold text-3xl text-gray-900">Welcome Back</h1>
+          <p className="text-sm text-gray-500">
+            Sign in to your account or create a new one.
+          </p>
 
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs">
-            {error}
-          </div>
-        )}
-         <form className="flex flex-col gap-3">
-          <div>
-            <label className="text-xs font-medium text-gray-600">Email Address</label>
-            <input type="email" 
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
-            className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500"
-            />
-          </div>
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs">
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleLogin} autoComplete="off" className="flex flex-col gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-600">
+                Email Address
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
 
-          <div>
-            <label className="text-xs font-medium text-gray-600">Password</label>
-            <input type="password" 
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500"
-            />
-          </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600">
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
 
-          <div className="flex gap-3 mt-3">
-            <button
-            type="button"
-            onClick={handleLogin}
-            disabled={isSubmitting}
-            className="flex-1 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm cursor-pointer hover:bg-blue-700 active:scale-95 transition disabled:opacity-50"
-            >
-              {isSubmitting ? "Processing..." : "Login"}
-            </button>
-            <button
-            type="button"
-            onClick={handleSignUp}
-            disabled={isSubmitting}
-            className="flex-1 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg text-sm cursor-pointer hover:bg-gray-200 active:scale-95 transition disabled:opacity-50"
-            >
-              Sign Up
-            </button>
-          </div>
-         </form>
+            <div className="flex gap-3 mt-3">
+              <button
+                type="button"
+                onClick={handleLogin}
+                disabled={isSubmitting}
+                className="flex-1 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm cursor-pointer hover:bg-blue-700 active:scale-95 transition disabled:opacity-50"
+              >
+                {isSubmitting ? "Processing..." : "Login"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSignUp}
+                disabled={isSubmitting}
+                className="flex-1 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg text-sm cursor-pointer hover:bg-gray-200 active:scale-95 transition disabled:opacity-50"
+              >
+                Sign Up
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

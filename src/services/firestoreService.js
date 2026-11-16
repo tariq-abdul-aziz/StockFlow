@@ -1,24 +1,18 @@
 import { ref, get, set, update } from "firebase/database";
 import { db } from "../firebase";
-import { products as defaultProducts } from "../components/data/products";
 
 // Products
 export const getProducts = async (userId) => {
-  const productsRef = ref(db, `users/${userId}/products`);
-  const snapshot = await get(productsRef);
-
-  if (!snapshot.exists()) {
-    // Seed default catalog for a new user
-    const initialMap = {};
-    for (const prod of defaultProducts) {
-      initialMap[prod.id] = { ...prod, createdAt: new Date().toISOString() };
-    }
-    await set(productsRef, initialMap);
-    return defaultProducts;
+  try {
+    const productsRef = ref(db, `users/${userId}/products`);
+    const snapshot = await get(productsRef);
+    if (!snapshot.exists()) return [];
+    const data = snapshot.val();
+    return data ? Object.values(data) : [];
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    return [];
   }
-
-  const data = snapshot.val();
-  return Object.values(data);
 };
 
 export const saveProduct = async (userId, productData) => {
@@ -117,7 +111,7 @@ export const getProformas = async (userId) => {
 
 export const saveProforma = async (userId, proformaData) => {
   const docId = String(proformaData.details?.proformaNumber || Date.now());
-  const proformaRef = ref(db, `users/${userId}/proformas/$docId`);
+  const proformaRef = ref(db, `users/${userId}/proformas/${docId}`);
 
   const payload = {
     ...proformaData,

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router";
-import { products as defaultProducts } from "../components/data/products";
 import { getProducts } from "../services/firestoreService";
 import { Link } from "react-router";
 

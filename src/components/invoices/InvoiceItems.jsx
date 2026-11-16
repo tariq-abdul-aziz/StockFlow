@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import { getGstByHsn } from "../data/hsnCodes";
 import { Plus, Trash2 } from "lucide-react";
 
 const InvoiceItems = ({ items, setItems, inventory = [] }) => {
   const handleProductSelect = (id, selectedProductId) => {
-    const selected = inventory.find((p) => p.id === Number(selectedProductId));
-    const fallbackCatalogProduct = defaultProducts.find(
-      (p) => p.id === Number(selectedProductId),
+    const selected = inventory.find(
+      (p) => String(p.id) === String(selectedProductId),
     );
     const resolveHsn = selected?.hsn || "";
 
@@ -135,7 +134,7 @@ const InvoiceItems = ({ items, setItems, inventory = [] }) => {
                   onChange={(e) => handleProductSelect(item.id, e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-gray-400"
                 >
-                  <option>Select a product</option>
+                  <option value="">Select a product</option>
                   {inventory.map((prod) => (
                     <option
                       key={prod.id}

@@ -8,6 +8,7 @@ const ProForma = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedProformas, setsavedProformas] = useState([]);
 
   const formatDate = (date) => {
     return date.toISOString().split("T")[0];
@@ -52,6 +53,8 @@ const ProForma = () => {
       if (!currentUser?.uid) return;
       try {
         const list = await getProformas(currentUser.uid);
+        setsavedProformas(list);
+
         let maxNum = 0;
         list.forEach((pf) => {
           const num = Number(
@@ -138,7 +141,7 @@ const ProForma = () => {
       return;
     }
 
-    if (!currentUser?.uid ||isSubmitting) return;
+    if (!currentUser?.uid || isSubmitting) return;
 
     const proforma = {
       customer,
@@ -153,9 +156,35 @@ const ProForma = () => {
 
     try {
       setIsSubmitting(true);
-      await saveProforma(currentUser.uid, proforma);
+      const saved = await saveProforma(currentUser.uid, proforma);
+      setsavedProformas((prev) => [saved, ...prev]);
+
+      // Advance to next proforma number and clear customer/items
+      const currentNum = Number(
+        (proformaDetails.proformaNumber || "").replace("PF-", ""),
+      );
+      setProformaDetails: (prev) => ({
+        ...prev,
+        proformaNumber: `PF-${String((isNaN(currentNum) ? 0 : currentNum) + 1).padStart(3, "0")}`,
+      });
+      setCustomer({
+        customerName: "",
+        phone: "",
+        email: "",
+        gstin: "",
+        billingAddress: "",
+      });
+      setItems([
+        {
+          id: Date.now(),
+          product: "",
+          quantity: 1,
+          rate: "",
+        },
+      ]);
+      setNotes("");
+
       alert("Pro Forma Saved!");
-      navigate("/dashboard");
     } catch (err) {
       console.error("Failed to save proforma:", err);
       alert("Error saving Pro Forma: " + err.message);
@@ -164,7 +193,7 @@ const ProForma = () => {
     }
   };
   return (
-    <div className="proformaContainer max-h-screen bg-gray-50 p-4 sm:p-6 lg:-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:-8">
       <div className="subContainer max-w-5xl mx-auto">
         {/* PAGE HEADER */}
         <Link
@@ -467,11 +496,74 @@ const ProForma = () => {
         <section className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 mb-5">
           <div className="flex justify-end">
             <button
-              className="px-5 oy-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 cursor-pointer"
+              className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 cursor-pointer"
               onClick={handleSave}
+              disabled={isSubmitting}
             >
-              Save Pro Forma
+              {isSubmitting ? "Saving..." : "Save Pro Forma"}
             </button>
+          </div>
+        </section>
+
+        {/* Saved Proformas table */}
+        <section className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-8">
+          <div className="p-4 sm:p-5 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-900">
+              Save Pro Formas
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">All quotations saved.</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
+                <tr>
+                  <th className="text-left px-5 py-3">Pro Forma #</th>
+                  <th className="text-left px-5 py-3">Customer</th>
+                  <th className="text-left px-5 py-3">Issue Date</th>
+                  <th className="text-left px-5 py-3">Valid Until</th>
+                  <th className="text-left px-5 py-3">Total Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {savedProformas.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="px-5 py-8 text-center text-gray-500"
+                    >
+                      No saved Pro Forma yet.
+                    </td>
+                  </tr>
+                ) : (
+                  savedProformas.map((pf) => (
+                    <tr
+                      key={pf.id || pf.details?.proformaNumber}
+                      className="hover:bg-gray-50"
+                    >
+                      <td className="px-5 py-4 text-4 font-mono font-medium text-gray-900">
+                        {pf.details?.proformaNumber}
+                      </td>
+                      <td className="px-5 py-4 text-gray-700">
+                        {pf.customer?.customerName || "-"}
+                      </td>
+                      <td className="px-5 py-4 text-gray-700">
+                        {pf.details?.issueDate || "-"}
+                      </td>
+                      <td className="px-5 py-4 text-gray-700">
+                        {pf.details?.validUntil || "-"}
+                      </td>
+                      <td className="px-5 py-4 text-right font-medium text-gray-900">
+                        ₹
+                        {Number(pf.total || 0).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
       </div>

@@ -52,7 +52,7 @@ const CreateInvoice = () => {
       hsn: "",
       quantity: "",
       rate: "",
-      gst: 18,
+      gst: 0,
     },
   ]);
 

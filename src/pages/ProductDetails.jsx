@@ -101,7 +101,7 @@ const ProductDetails = () => {
       await saveProduct(currentUser.uid, payload);
       setProduct(payload);
       setIsEditing(false);
-      alert("Product updated in Cloud Database successfully!");
+      alert("Product updated successfully!");
     } catch (err) {
       console.error("Failed to update product:", err);
       alert("Error updating product: " + err.message);
