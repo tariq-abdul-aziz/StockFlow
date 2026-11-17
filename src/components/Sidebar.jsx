@@ -73,11 +73,13 @@ const Sidebar = () => {
       {/* SIDEBAR */}
       <aside
         className={`
-          fixed md:static
+          fixed md:sticky
           top-0 left-0
           z-50
           w-64
-          min-h-screen
+          h-screen
+          flex flex-col
+          overflow-y-auto
           bg-white
           border-r border-gray-200
           px-4 py-6

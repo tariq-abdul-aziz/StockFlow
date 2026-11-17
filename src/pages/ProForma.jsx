@@ -163,10 +163,9 @@ const ProForma = () => {
       const currentNum = Number(
         (proformaDetails.proformaNumber || "").replace("PF-", ""),
       );
-      setProformaDetails: (prev) => ({
-        ...prev,
-        proformaNumber: `PF-${String((isNaN(currentNum) ? 0 : currentNum) + 1).padStart(3, "0")}`,
-      });
+      setProformaDetails((prev) => ({
+        ...prev, proformaNumber: `PF-${String((isNaN(currentNum) ? 0 : currentNum) + 1).padStart(3, "0")}`,
+      }))
       setCustomer({
         customerName: "",
         phone: "",

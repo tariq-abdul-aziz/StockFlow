@@ -7,7 +7,6 @@ import QuickAction from "../components/QuickAction";
 const Dashboard = () => {
   return (
     <div className="w-full min-h-screen flex flex-col md:flex-row">
-      <Sidebar />
       <div className="midContainer flex flex-col">
         <Cards />
         <div className="submidContainer p-5">
