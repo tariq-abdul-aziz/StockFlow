@@ -539,7 +539,8 @@ const ProForma = () => {
                   savedProformas.map((pf) => (
                     <tr
                       key={pf.id || pf.details?.proformaNumber}
-                      className="hover:bg-gray-50"
+                      onClick={() => navigate(`/proforma/${pf.details?.proformaNumber}`)}
+                      className="hover:bg-gray-50 cursor-pointer"
                     >
                       <td className="px-5 py-4 text-4 font-mono font-medium text-gray-900">
                         {pf.details?.proformaNumber}

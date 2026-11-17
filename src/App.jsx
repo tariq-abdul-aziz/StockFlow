@@ -19,6 +19,7 @@ import CreateInvoice from "./pages/CreateInvoice";
 import ProductDetails from "./pages/ProductDetails";
 import AddProducts from "./pages/AddProducts";
 import CustomerDetails from "./pages/CustomerDetails";
+import ProFormaDetails from "./pages/ProFormaDetails";
 
 const App = () => {
   return (
@@ -70,6 +71,15 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <ProForma />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/proforma:id"
+            element={
+              <ProtectedRoute>
+                <ProFormaDetails />
               </ProtectedRoute>
             }
           />

@@ -36,6 +36,19 @@ const InvoiceDetails = () => {
     );
   }
 
+  const normalizedInvoice = {
+    number: invoice.invoiceNumber,
+    date: invoice.invoiceDate,
+    dueDate: invoice.dueDate,
+    status: invoice.status,
+    customer: invoice.customer,
+    items: invoice.items,
+    subtotal: invoice.subtotal,
+    taxAmount: invoice.taxAmount,
+    total: invoice.total,
+    notes: invoice.notes,
+  };
+
   if (!invoice) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
@@ -119,6 +132,23 @@ const InvoiceDetails = () => {
           </button>
         </div>
       </div>
+      <DocumentPreview
+        type="Invoice"
+        backTo="/invoices"
+        backLabel="Back to Invoices"
+        documentData={normalizedInvoice}
+        extraActions={
+          invoice.status !== "Paid" && (
+            <button
+              type="button"
+              onClick={handleMarkAsPaid}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition cursor-pointer shadow-sm"
+            >
+              Mark as Paid
+            </button>
+          )
+        }
+      />
       {/* Invoice Document Canvas */}
       <div className="max-w-4xl mx-auto bg-white border border-gray-700 rounded-xl p-8 sm:p-12 shadow-sm print:shadow-none print:border-none print:p-0 print:max-w-full">
         {/* Header */}
