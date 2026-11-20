@@ -38,6 +38,8 @@ const StockIn = () => {
     (product) => String(product.id) === String(selectedProductId),
   );
 
+  const isSerialTracked = selectedProduct?.serialTracking === true || selectedProduct?.serialTracking === "true";
+
   const handleStockIn = async () => {
     if (!selectedProduct) {
       alert("Please select a product.");
@@ -51,6 +53,15 @@ const StockIn = () => {
     }
 
     let newSerialNumbers = [];
+    if (isSerialTracked) {
+      newSerialNumbers = serialNumbers.split("\n").map((s) => s.trim()).filter(Boolean);
+
+      if (newSerialNumbers.length !== stockQuantity) {
+        alert(`Please enter exactly ${stockQuantity} serial numbers.`);
+        return;
+      }
+    }
+
     if (selectedProduct.serialTracking) {
       newSerialNumbers = serialNumbers
         .split("\n")
@@ -77,7 +88,7 @@ const StockIn = () => {
       ...selectedProduct,
       currentStock: Number(selectedProduct.currentStock || 0) + stockQuantity,
       stockHistory: [historyEntry, ...(selectedProduct.stockHistory || [])],
-      serialNumbers: selectedProduct.serialTracking
+      serialNumbers: isSerialTracked
         ? [...(selectedProduct.serialNumbers || []), ...newSerialNumbers]
         : selectedProduct.serialNumbers || [],
     };
@@ -168,7 +179,7 @@ const StockIn = () => {
             </div>
 
             {/* SERIAL NUMBER */}
-            {selectedProduct?.serialTracking && (
+            {isSerialTracked && (
               <div>
                 <label className="text-sm font-medium text-gray-700">
                   Serial Numbers

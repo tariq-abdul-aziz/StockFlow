@@ -55,6 +55,14 @@ const CustomerDetails = () => {
     fetchData();
   }, [currentUser, id]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <p className="text-sm text-gray-500">loading customer profile...</p>
+      </div>
+    );
+  }
+
   if (!customer) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
@@ -64,13 +72,13 @@ const CustomerDetails = () => {
         <p className="text-sm text-gray-500 mt-2">
           No customer profile matches ID:{" "}
           <span className="font-mono">{id}</span>
-          <Link
-            className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm"
-            to="/customers"
-          >
-            ← Back to Customers
-          </Link>
         </p>
+        <Link
+          className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm"
+          to="/customers"
+        >
+          ← Back to Customers
+        </Link>
       </div>
     );
   }
@@ -126,17 +134,17 @@ const CustomerDetails = () => {
             </div>
 
             <div>
-              <span className="tetx-xs text-gray-500 block mb-1">GSTIN</span>
+              <span className="text-xs text-gray-500 block mb-1">GSTIN</span>
               <span className="font-mono font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded inline-block">
                 {customer.gstin || "Unregistered"}
               </span>
             </div>
 
             <div>
-              <span className="text-xs texct-gray-500 block mb-1">
+              <span className="text-xs text-gray-500 block mb-1">
                 Billing Address
               </span>
-              <div className="flex item-start gap-1.5 text-gray-700">
+              <div className="flex items-start gap-1.5 text-gray-700">
                 <MapPin size={14} className="text-gray-400 shrink-0 mt-0.5" />
                 <span>{customer.billingAddress || "-"}</span>
               </div>
@@ -186,79 +194,79 @@ const CustomerDetails = () => {
               <h2 className="text-base font-semibold text-gray-900">
                 Invoice History
               </h2>
-              <Link
-                to="/invoices/create"
-                className="text-xs font-semibold text-blue-600 hover:underline"
-              >
-                + Create Invoice
-              </Link>
             </div>
+            <Link
+              to="/invoices/create"
+              className="text-xs font-semibold text-blue-600 hover:underline"
+            >
+              + Create Invoice
+            </Link>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
+                <tr>
+                  <th className="text-left px-5 py-3">Invoice #</th>
+                  <th className="text-left px-5 py-3">Date</th>
+                  <th className="text-left px-5 py-3">Amount</th>
+                  <th className="text-left px-5 py-3">Status</th>
+                  <th className="text-left px-5 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {customerInvoices.length === 0 ? (
                   <tr>
-                    <th className="text-left px-5 py-3">Invoice #</th>
-                    <th className="text-left px-5 py-3">Date</th>
-                    <th className="text-left px-5 py-3">Amount</th>
-                    <th className="text-left px-5 py-3">Status</th>
-                    <th className="text-left px-5 py-3">Action</th>
+                    <td
+                      colSpan="5"
+                      className="px-5 py-8 text-center text-gray-500"
+                    >
+                      No invoices found for this customer.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {customerInvoices.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        className="px-5 py-8 text-center text-gray-500"
-                      >
-                        No invoices found for this customer.
+                ) : (
+                  customerInvoices.map((inv) => (
+                    <tr key={inv.invoiceNumber} className="hover:bg-gray-50">
+                      <td className="px-5 py-4 font-mono font-medium text-gray-900">
+                        {inv.invoiceNumber}
+                      </td>
+                      <td className="px-5 py-4 text-gray-500">
+                        {inv.invoiceDate || "-"}
+                      </td>
+                      <td className="px-5 py-4 text-right font-medium text-gray-900">
+                        ₹
+                        {Number(inv.total || 0).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                            inv.status === "Paid"
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              : "bg-amber-50 text-amber-600 border border-amber-100"
+                          }`}
+                        >
+                          {inv.status || "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(`/invoices/${inv.invoiceNumber}`)
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                        >
+                          <Eye size={13} className="text-gray-500" />
+                          View
+                        </button>
                       </td>
                     </tr>
-                  ) : (
-                    customerInvoices.map((inv) => (
-                      <tr key={inv.invoiceNumber} className="hover:bg-gray-50">
-                        <td className="px-5 py-4 font-mono font-medium text-gray-900">
-                          {inv.invoiceNumber}
-                        </td>
-                        <td className="px-5 py-4 text-gray-500">
-                          {inv.invoiceDate || "-"}
-                        </td>
-                        <td className="px-5 py-4 text-right font-medium text-gray-900">
-                          ₹
-                          {Number(inv.total || 0).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          <span
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                              inv.status === "Paid"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                : "bg-amber-50 text-amber-600 border border-amber-100"
-                            }`}
-                          >
-                            {inv.status || "Pending"}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              navigate(`/invoices/${inv.invoiceNumber}`)
-                            }
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-                          >
-                            <Eye size={13} className="text-gray-500" />
-                            View
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
       </div>

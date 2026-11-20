@@ -2,13 +2,21 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
-import { getProformas, saveProforma } from "../services/firestoreService";
+import {
+  getProformas,
+  saveProforma,
+  getCustomers,
+  getProducts,
+} from "../services/firestoreService";
+import CustomerDetails from "../components/invoices/CustomerDetails";
 
 const ProForma = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedProformas, setsavedProformas] = useState([]);
+  const [savedCustomers, setSavedCustomers] = useState([]);
+  const [inventory, setInventory] = useState([]);
 
   const formatDate = (date) => {
     return date.toISOString().split("T")[0];
@@ -52,8 +60,14 @@ const ProForma = () => {
 
       if (!currentUser?.uid) return;
       try {
-        const list = await getProformas(currentUser.uid);
+        const [list, custList, prodList] = await Promise.all([
+          getProformas(currentUser.uid),
+          getCustomers(currentUser.uid),
+          getProducts(currentUser.uid),
+        ]);
         setsavedProformas(list);
+        setSavedCustomers(custList);
+        setInventory(prodList);
 
         let maxNum = 0;
         list.forEach((pf) => {
@@ -74,6 +88,22 @@ const ProForma = () => {
     };
     loadNextNumber();
   }, [currentUser]);
+
+  const handleProductPick = (id, productId) => {
+    const selected = inventory.find((p) => String(p.id) === String(productId));
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              productId: selected ? selected.id : "",
+              product: selected ? selected.productName : "",
+              rate: selected ? selected.sellingPrice : item.rate
+            }
+          : item,
+      ),
+    );
+  };
 
   const handleItemChange = (id, field, value) => {
     setItems((prevItems) =>
@@ -164,8 +194,9 @@ const ProForma = () => {
         (proformaDetails.proformaNumber || "").replace("PF-", ""),
       );
       setProformaDetails((prev) => ({
-        ...prev, proformaNumber: `PF-${String((isNaN(currentNum) ? 0 : currentNum) + 1).padStart(3, "0")}`,
-      }))
+        ...prev,
+        proformaNumber: `PF-${String((isNaN(currentNum) ? 0 : currentNum) + 1).padStart(3, "0")}`,
+      }));
       setCustomer({
         customerName: "",
         phone: "",
@@ -211,59 +242,11 @@ const ProForma = () => {
           </p>
         </div>
 
-        <div className="inputs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <input
-            type="text"
-            placeholder="Customer Name"
-            value={customer.customerName}
-            onChange={(e) =>
-              setCustomer({
-                ...customer,
-                customerName: e.target.value,
-              })
-            }
-            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-400"
-          />
-
-          <input
-            type="tel"
-            placeholder="Phone"
-            value={customer.phone}
-            onChange={(e) =>
-              setCustomer({
-                ...customer,
-                phone: e.target.value,
-              })
-            }
-            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-400"
-          />
-
-          <input
-            type="email"
-            placeholder="Email"
-            value={customer.email}
-            onChange={(e) =>
-              setCustomer({
-                ...customer,
-                email: e.target.value,
-              })
-            }
-            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-400"
-          />
-
-          <input
-            type="text"
-            placeholder="Billing Address"
-            value={customer.billingAddress}
-            onChange={(e) =>
-              setCustomer({
-                ...customer,
-                billingAddress: e.target.value,
-              })
-            }
-            className="sm:col-span-2 border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-400"
-          />
-        </div>
+        <CustomerDetails
+          customer={customer}
+          setCustomer={setCustomer}
+          savedCustomers={savedCustomers}
+        />
 
         <section className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 mb-5">
           <h2 className="text-base font-semibold text-gray-900 mb-5">
@@ -361,6 +344,19 @@ const ProForma = () => {
                     <label className="text-sm font-medium text-gray-700">
                       Product
                     </label>
+
+                    <select
+                    value={item.productId || ""}
+                    onChange={(e) => handleProductPick(item.id, e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-gray-400"
+                    >
+                      <option value="">-- select product or type below</option>
+                      {inventory.map((prod) => (
+                        <option key={prod.id} value={prod.id}>
+                          {prod.productName} ({prod.sku}) - ₹{prod.sellingPrice}
+                        </option>
+                      ))}
+                    </select>
 
                     <input
                       type="text"
@@ -538,7 +534,9 @@ const ProForma = () => {
                   savedProformas.map((pf) => (
                     <tr
                       key={pf.id || pf.details?.proformaNumber}
-                      onClick={() => navigate(`/proforma/${pf.details?.proformaNumber}`)}
+                      onClick={() =>
+                        navigate(`/proforma/${pf.details?.proformaNumber}`)
+                      }
                       className="hover:bg-gray-50 cursor-pointer"
                     >
                       <td className="px-5 py-4 text-4 font-mono font-medium text-gray-900">
