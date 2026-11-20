@@ -122,3 +122,24 @@ export const saveProforma = async (userId, proformaData) => {
   await set(proformaRef, payload);
   return payload;
 };
+
+// Business Setting
+export const getBusinessSetting = async (userId) => {
+  try {
+    const settingsRef = ref(db, `users/${userId}/settings`);
+    const snapshot = await get(settingsRef);
+    return snapshot.exists() ? snapshot.val() : null;
+  } catch (err) {
+    console.error("Error fetching settings:", err);
+    return null;
+  }
+};
+
+export const saveBusinessSettings = async (userId, settingsData) => {
+  const settingsRef = ref(db, `users/${userId}/settings`);
+  const payload = {
+    ...settingsData, updatedAt: new Date().toISOString(),
+  };
+  await set(settingsRef, payload);
+  return payload;
+};

@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, Printer, Share2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { getInvoices, getProformas } from "../services/firestoreService";
+import { getInvoices, getProformas, getBusinessSetting } from "../services/firestoreService";
 
 const DocumentViewer = ({ type = "invoice" }) => {
   const { id } = useParams();
   const { currentUser } = useAuth();
   const [doc, setDoc] = useState(null);
+  const [business, setBusiness] = useState(null)
   const [loading, setLoading] = useState(true);
 
   const isProforma = type === "proforma";
@@ -19,6 +20,9 @@ const DocumentViewer = ({ type = "invoice" }) => {
     const fetchDoc = async () => {
       if (!currentUser?.uid) return;
       try {
+        const settings = await getBusinessSetting(currentUser.uid);
+        setBusiness(settings);
+
         if (isProforma) {
           const all = await getProformas(currentUser.uid);
           const matched = all.find(
@@ -149,11 +153,26 @@ const DocumentViewer = ({ type = "invoice" }) => {
         <div className="flex justify-between items-start border-b border-gray-200 pb-8">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
-              StockFlow
+              {business?.companyName || "StockFlow"}
             </h1>
             <p className="text-xs text-gray-500 mt-1">
-              Invoice & Inventory Solutions
+              {business?.tagline || "Invoice & Inventory Solutions"}
             </p>
+            {business?.gstin && (
+              <p className="text-xs font-mono text-gray-600 mt-1">
+                GSTIN: {business.gstin}
+              </p>
+            )}
+            {business?.address && (
+              <p className="text-xs text-gray-500 mt-1 max-w-xs whitespace-pre-line">
+                {business.address}
+              </p>
+            )}
+            {(business?.phone || business?.email) && (
+              <p className="text-xs text-gray-500 mt-1">
+                {[business.phone, business.email].filter(Boolean).join(" • ")}
+              </p>
+            )}
           </div>
 
           <div className="text-right">

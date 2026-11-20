@@ -9,7 +9,6 @@ import ProForma from "./pages/ProForma";
 import Inventory from "./pages/Inventory";
 import StockIn from "./pages/StockIn";
 import StockOut from "./pages/StockOut";
-import Notepad from "./pages/Notepad";
 import Customers from "./pages/Customers";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
@@ -54,7 +53,6 @@ const App = () => {
             <Route path="/inventory/add" element={<AddProducts />} />
             <Route path="/stock-in" element={<StockIn />} />
             <Route path="/stock-out" element={<StockOut />} />
-            <Route path="/notepad" element={<Notepad />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetails />} />
             <Route path="/reports" element={<Reports />} />
