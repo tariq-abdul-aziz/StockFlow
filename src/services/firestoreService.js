@@ -95,6 +95,15 @@ export const saveInvoice = async (userId, invoiceData) => {
   return payload;
 };
 
+// Update Invoice
+export const updateInvoiceStatus = async (userId, invoiceId, status) => {
+  const invoiceRef = ref(db, `users/${userId}/invoices/${invoiceId}`);
+  await update(invoiceRef, {
+    status,
+    updatedAt: new Date().toISOString(),
+  });
+};
+
 // Pro Formas
 export const getProformas = async (userId) => {
   try {

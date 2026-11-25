@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, Printer, Share2 } from "lucide-react";
+import { ArrowLeft, Printer, Share2, CheckCircle, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { getInvoices, getProformas, getBusinessSetting } from "../services/firestoreService";
+import { getInvoices, getProformas, getBusinessSetting, updateInvoiceStatus } from "../services/firestoreService";
 
 const DocumentViewer = ({ type = "invoice" }) => {
   const { id } = useParams();
@@ -94,6 +94,18 @@ const DocumentViewer = ({ type = "invoice" }) => {
   );
   const total = Number(doc.total ?? subtotal + taxAmount);
 
+  const handleMarkAsPaid = async () => {
+    if (!currentUser?.uid || !doc || isProforma) return;
+    const targetId = String(doc.id || doc.invoiceNumber);
+    try {
+      await updateInvoiceStatus(currentUser.uid, targetId, "Paid");
+      setDoc((prev) => ({...prev, status: "Paid"}));
+    } catch (err) {
+      console.error("Failed to mark invoice as paid:", err);
+      alert("Failed to update status: " + err.message);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -129,6 +141,16 @@ const DocumentViewer = ({ type = "invoice" }) => {
         </Link>
 
         <div className="flex items-center gap-3">
+        {!isProforma && status !== "Paid" && (
+          <button
+          type="button"
+          onClick={handleMarkAsPaid}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition cursor-pointer shadow-xs"
+          >
+            <CheckCircle />
+            Mark As Paid
+          </button>
+        )}
           <button
             type="button"
             onClick={handleShare}
