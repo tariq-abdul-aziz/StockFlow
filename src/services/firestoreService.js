@@ -152,3 +152,29 @@ export const saveBusinessSettings = async (userId, settingsData) => {
   await set(settingsRef, payload);
   return payload;
 };
+
+// Scanner Serial Batches (Notepad)
+export const getSerialBatches = async (userId) => {
+  try {
+    const batchesRef = ref(db, `users/${userId}/serialBatches`);
+    const snapshot = await get(batchesRef);
+    if (!snapshot.exists()) return [];
+    const list = Object.values(snapshot.val());
+    return list.reverse();
+  } catch (err) {
+    console.error("Error fetching serial batches:", err);
+    return [];
+  }
+};
+
+export const saveSerialBatch = async (userId, batchData) => {
+  const docId = String(batchData.id || Date.now());
+  const batchRef = ref(db(db, `users/${userId}/serialBatches/${docId}`));
+  const payload = {
+    ...batchData,
+    id: docId,
+    createAt: new Date().toISOString(),
+  };
+  await set(batchRef, payload);
+  return payload;
+};
