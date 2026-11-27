@@ -98,7 +98,7 @@ const ProForma = () => {
               ...item,
               productId: selected ? selected.id : "",
               product: selected ? selected.productName : "",
-              rate: selected ? selected.sellingPrice : item.rate
+              rate: selected ? selected.sellingPrice : item.rate,
             }
           : item,
       ),
@@ -333,22 +333,29 @@ const ProForma = () => {
 
           <div className="space-y-3">
             {items.map((item) => {
-              const amount = Number(item.quantity) * Number(item.rate);
+              const baseAmount =
+                (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+              const gstPercent = Number(taxRate) || 0;
+              const lineGstAmount = (baseAmount * gstPercent) / 100;
+              const totalWithGst = baseAmount + lineGstAmount;
+
               return (
                 <div
                   key={item.id}
                   className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end"
                 >
                   {/* PRODUCT */}
-                  <div className="sm:col-span-5">
+                  <div className="sm:col-span-4">
                     <label className="text-sm font-medium text-gray-700">
                       Product
                     </label>
 
                     <select
-                    value={item.productId || ""}
-                    onChange={(e) => handleProductPick(item.id, e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-gray-400"
+                      value={item.productId || ""}
+                      onChange={(e) =>
+                        handleProductPick(item.id, e.target.value)
+                      }
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-gray-400"
                     >
                       <option value="">-- select product or type below</option>
                       {inventory.map((prod) => (
@@ -370,7 +377,7 @@ const ProForma = () => {
                   </div>
 
                   {/* QUANTITY */}
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-1">
                     <label className="text-sm font-medium text-gray-700">
                       Qty
                     </label>
@@ -382,7 +389,7 @@ const ProForma = () => {
                       onChange={(e) =>
                         handleItemChange(item.id, "quantity", e.target.value)
                       }
-                      className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-400"
+                      className="mt-1 w-full border border-gray-200 rounded-lg px-2 py-2.5 text-sm outline-none focus:border-gray-400"
                     />
                   </div>
 
@@ -403,11 +410,35 @@ const ProForma = () => {
                     />
                   </div>
 
+                  {/* GST (₹ + %) */}
                   <div className="sm:col-span-2">
                     <label className="text-sm font-medium text-gray-700">
-                      Amount
+                      GST
                     </label>
-                    <div>₹{amount.toLocaleString("en-IN")}</div>
+                    <div className="mt-1 border border-gray-100 bg-gray-50 rounded-lg px-2.5 py-2.5 text-sm font-medium text-gray-800">
+                      ₹
+                      {lineGstAmount.toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      <span className="text-xs text-gray-500">
+                        ({gstPercent}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* TOTAL WITH GST */}
+                  <div className="sm:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Total (With GST)
+                    </label>
+                    <div className="mt-1 border border-gray-100 bg-gray-50 rounded-lg px-2.5 py-2.5 text-sm font-semibold text-gray-900">
+                      ₹
+                      {totalWithGst.toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
                   </div>
 
                   {/* REMOVE */}
@@ -517,7 +548,7 @@ const ProForma = () => {
                   <th className="text-left px-5 py-3">Customer</th>
                   <th className="text-left px-5 py-3">Issue Date</th>
                   <th className="text-left px-5 py-3">Valid Until</th>
-                  <th className="text-left px-5 py-3">Total Amount</th>
+                  <th className="text-right px-5 py-3">Total Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

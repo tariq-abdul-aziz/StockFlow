@@ -1,5 +1,11 @@
 import React from "react";
-import {FilePlusCorner, FileText, Download, Upload, ScanQrCode} from "lucide-react"
+import {
+  FilePlusCorner,
+  FileText,
+  Download,
+  Upload,
+  ScanQrCode,
+} from "lucide-react";
 import { Link } from "react-router";
 
 const QuickAction = () => {
@@ -34,10 +40,10 @@ const QuickAction = () => {
     },
     {
       id: 5,
-      title: "Scan Serial Number",
+      title: "Stock In",
       icon: ScanQrCode,
       iconColor: "#059669",
-      to: "/inventory",
+      to: "/stock-in",
     },
   ];
   return (
@@ -54,7 +60,7 @@ const QuickAction = () => {
               className="bg-gray-50 border border-gray-200 p-4 rounded-xl flex items-center justify-center gap-3 hover:bg-white hover:border-gray-300 transition-colors cursor-pointer"
             >
               <div className="cardsDetails flex items-center gap-2">
-              <IconComponent size={24} color={item.iconColor} />
+                <IconComponent size={24} color={item.iconColor} />
                 <span className="text-sm font-light text-gray-500">
                   {item.title}
                 </span>

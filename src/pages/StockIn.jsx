@@ -38,7 +38,9 @@ const StockIn = () => {
     (product) => String(product.id) === String(selectedProductId),
   );
 
-  const isSerialTracked = selectedProduct?.serialTracking === true || selectedProduct?.serialTracking === "true";
+  const isSerialTracked =
+    selectedProduct?.serialTracking === true ||
+    selectedProduct?.serialTracking === "true";
 
   const handleStockIn = async () => {
     if (!selectedProduct) {
@@ -54,7 +56,10 @@ const StockIn = () => {
 
     let newSerialNumbers = [];
     if (isSerialTracked) {
-      newSerialNumbers = serialNumbers.split("\n").map((s) => s.trim()).filter(Boolean);
+      newSerialNumbers = serialNumbers
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
 
       if (newSerialNumbers.length !== stockQuantity) {
         alert(`Please enter exactly ${stockQuantity} serial numbers.`);
@@ -181,9 +186,11 @@ const StockIn = () => {
             {/* SERIAL NUMBER */}
             {isSerialTracked && (
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Serial Numbers
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium text-gray-700">
+                    Serial Numbers
+                  </label>
+                </div>
 
                 <textarea
                   value={serialNumbers}
@@ -192,7 +199,6 @@ const StockIn = () => {
                   rows={5}
                   className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none"
                 />
-
                 <p className="mt-1 text-xs text-gray-500">
                   Enter one serial number per line.
                 </p>

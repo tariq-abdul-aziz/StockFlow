@@ -2,13 +2,18 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, Printer, Share2, CheckCircle, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { getInvoices, getProformas, getBusinessSetting, updateInvoiceStatus } from "../services/firestoreService";
+import {
+  getInvoices,
+  getProformas,
+  getBusinessSetting,
+  updateInvoiceStatus,
+} from "../services/firestoreService";
 
 const DocumentViewer = ({ type = "invoice" }) => {
   const { id } = useParams();
   const { currentUser } = useAuth();
   const [doc, setDoc] = useState(null);
-  const [business, setBusiness] = useState(null)
+  const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const isProforma = type === "proforma";
@@ -27,15 +32,13 @@ const DocumentViewer = ({ type = "invoice" }) => {
           const all = await getProformas(currentUser.uid);
           const matched = all.find(
             (pf) =>
-              pf.details?.proformaNumber === id ||
-              String(pf.id) === String(id),
+              pf.details?.proformaNumber === id || String(pf.id) === String(id),
           );
           setDoc(matched || null);
         } else {
           const all = await getInvoices(currentUser.uid);
           const matched = all.find(
-            (inv) =>
-              inv.invoiceNumber === id || String(inv.id) === String(id),
+            (inv) => inv.invoiceNumber === id || String(inv.id) === String(id),
           );
           setDoc(matched || null);
         }
@@ -51,7 +54,9 @@ const DocumentViewer = ({ type = "invoice" }) => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <p className="text-sm text-gray-500">Loading {label.toLowerCase()}...</p>
+        <p className="text-sm text-gray-500">
+          Loading {label.toLowerCase()}...
+        </p>
       </div>
     );
   }
@@ -77,7 +82,9 @@ const DocumentViewer = ({ type = "invoice" }) => {
   }
 
   // Read fields directly from either Invoice or Pro Forma structure
-  const docNumber = isProforma ? doc.details?.proformaNumber : doc.invoiceNumber;
+  const docNumber = isProforma
+    ? doc.details?.proformaNumber
+    : doc.invoiceNumber;
   const issueDate = isProforma ? doc.details?.issueDate : doc.invoiceDate;
   const secondDate = isProforma ? doc.details?.validUntil : doc.dueDate;
   const status = isProforma ? "Quotation" : doc.status || "Pending";
@@ -88,7 +95,7 @@ const DocumentViewer = ({ type = "invoice" }) => {
       doc.items?.reduce((sum, item) => {
         const lineBase =
           (Number(item.quantity) || 0) * (Number(item.rate) || 0);
-        return sum + (lineBase * (Number(item.gst ?? doc.taxRate ?? 0))) / 100;
+        return sum + (lineBase * Number(item.gst ?? doc.taxRate ?? 0)) / 100;
       }, 0) ??
       0,
   );
@@ -99,7 +106,7 @@ const DocumentViewer = ({ type = "invoice" }) => {
     const targetId = String(doc.id || doc.invoiceNumber);
     try {
       await updateInvoiceStatus(currentUser.uid, targetId, "Paid");
-      setDoc((prev) => ({...prev, status: "Paid"}));
+      setDoc((prev) => ({ ...prev, status: "Paid" }));
     } catch (err) {
       console.error("Failed to mark invoice as paid:", err);
       alert("Failed to update status: " + err.message);
@@ -141,16 +148,16 @@ const DocumentViewer = ({ type = "invoice" }) => {
         </Link>
 
         <div className="flex items-center gap-3">
-        {!isProforma && status !== "Paid" && (
-          <button
-          type="button"
-          onClick={handleMarkAsPaid}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition cursor-pointer shadow-xs"
-          >
-            <CheckCircle />
-            Mark As Paid
-          </button>
-        )}
+          {!isProforma && status !== "Paid" && (
+            <button
+              type="button"
+              onClick={handleMarkAsPaid}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition cursor-pointer shadow-xs"
+            >
+              <CheckCircle />
+              Mark As Paid
+            </button>
+          )}
           <button
             type="button"
             onClick={handleShare}
@@ -270,48 +277,68 @@ const DocumentViewer = ({ type = "invoice" }) => {
         </div>
 
         {/* Item Table */}
-        <div className="py-8 border-b border-gray-200 uppercase">
-          <table className="w-full text-left text-sm">
+        <div className="py-8 border-b border-gray-200 uppercase overflow-x-auto">
+          <table className="w-full table-fixed border-collapse border border-gray-300 text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-xs font-semibold text-gray-400 text-center">
-                <th className="pb-3 text-left">Item Description</th>
-                <th className="pb-3">Qty</th>
-                <th className="pb-3">Rate</th>
-                <th className="pb-3 text-right">GST %</th>
-                <th className="pb-3 text-right">Amount</th>
+              <tr className="bg-gray-100 text-xs font-semibold text-gray-700">
+                <th className="w-[38%] border border-gray-300 px-3 py-2 text-left">
+                  Item Description
+                </th>
+                <th className="w-[10%] border border-gray-300 px-3 py-2 text-center">
+                  Qty
+                </th>
+                <th className="w-[16%] border border-gray-300 px-3 py-2 text-center">
+                  Rate
+                </th>
+                <th className="w-[18%] border border-gray-300 px-3 py-2 text-center">
+                  GST
+                </th>
+                <th className="w-[18%] border border-gray-300 px-3 py-2 text-right">
+                  Total (Incl. GST)
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y text-center divide-gray-100">
+            <tbody>
               {(doc.items || []).map((item, idx) => {
-                const lineTotal =
+                const baseAmount =
                   (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+                const gstPercent = Number(item.gst ?? doc.taxRate ?? 18);
+                const lineGstAmount = (baseAmount * gstPercent) / 100;
+                const lineTotalWithGst = baseAmount + lineGstAmount;
+
                 return (
-                  <tr key={item.id || idx}>
-                    <td className="py-4 font-medium text-gray-900 text-left">
+                  <tr key={item.id || idx} className="even:bg-gray-50/50">
+                    <td className="border border-gray-300 px-3 py-3 font-medium text-gray-900 text-left break-words">
                       <div>{item.product || "Untitled Product"}</div>
-                      <div className="flex items-center gap-3 text-[11px] font-mono text-gray-500 font-normal mt-0.5">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-gray-500 font-normal mt-1">
                         {item.hsn && <span>HSN: {item.hsn}</span>}
                         {item.selectedSerials?.length > 0 && (
                           <span>SN: {item.selectedSerials.join(", ")}</span>
                         )}
                       </div>
                     </td>
-                    <td className="py-4 font-medium text-gray-600">
+                    <td className="border border-gray-300 p-3 font-medium text-gray-700 text-center">
                       {item.quantity}
                     </td>
-                    <td className="py-4 font-medium text-gray-600">
+                    <td className="border border-gray-300 p-3 font-medium text-gray-700 text-right tabular-nums">
                       ₹
                       {Number(item.rate || 0).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                       })}
                     </td>
-                    <td className="py-4 font-medium text-gray-600 text-right">
-                      {item.gst ?? doc.taxRate ?? 18}%
-                    </td>
-                    <td className="py-4 font-medium text-gray-900 text-right">
+                    <td className="border border-gray-300 p-3 font-medium text-gray-700 text-center tabular-nums">
                       ₹
-                      {lineTotal.toLocaleString("en-IN", {
+                      {lineGstAmount.toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "} <br />
+                      ({gstPercent}%)
+                    </td>
+                    <td className="border border-gray-300 p-3 font-semibold text-gray-900 text-right tabular-nums">
+                      ₹
+                      {lineTotalWithGst.toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                   </tr>

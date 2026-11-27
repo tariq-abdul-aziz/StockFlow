@@ -102,9 +102,9 @@ const Invoices = () => {
                   <th className="text-left px-5 py-3">Invoice #</th>
                   <th className="text-left px-5 py-3">Customer</th>
                   <th className="text-left px-5 py-3">Date</th>
-                  <th className="text-left px-5 py-3">Amount</th>
-                  <th className="text-left px-5 py-3">Status</th>
-                  <th className="text-left px-5 py-3">Action</th>
+                  <th className="text-right px-5 py-3">Amount</th>
+                  <th className="text-center px-5 py-3">Status</th>
+                  <th className="text-center px-5 py-3">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

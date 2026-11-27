@@ -115,8 +115,11 @@ const InvoiceItems = ({ items, setItems, inventory = [] }) => {
 
       <div className="space-y-3">
         {items.map((item) => {
-          const lineTotal =
+          const baseAmount =
             (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+          const gstPercent = Number(item.gst ?? 18);
+          const gstAmount = (baseAmount * gstPercent) / 100;
+          const totalWithGst = baseAmount + gstAmount;
 
           return (
             <div
@@ -243,31 +246,45 @@ const InvoiceItems = ({ items, setItems, inventory = [] }) => {
               </div>
 
               {/* GST % */}
-              <div className="sm:col-span-1">
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  GST %
+                  GST (₹ / %)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={item.gst ?? 18}
-                  onChange={(e) =>
-                    handleItemChange(item.id, "gst", e.target.value)
-                  }
-                  className="w-full border border-gray-200 rounded-lg px-2 py-2.5 text-sm text-center outline-none focus:border-gray-400"
-                />
+                <div className="flex items-center justify-between gap-1.5 border border-gray-200 bg-gray-50 rounded-lg px-2.5 py-2 text-sm">
+                  <span className="font-medium text-gray-900 truncate">
+                    ₹
+                    {gstAmount.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                  <div className="flex items-center gap-0.5 shrink-0 text-gray-600">
+                    <span>(</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={item.gst ?? 18}
+                      onChange={(e) =>
+                        handleItemChange(item.id, "gst", e.target.value)
+                      }
+                      className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-xs text-center outline-none focus:border-gray-400"
+                    />
+                    <span>%)</span>
+                  </div>
+                </div>
               </div>
 
               {/* Line Total */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Total
+                  Total (Incl. GST)
                 </label>
                 <div className="w-full border border-gray-100 bg-gray-50 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-900 text-right">
                   ₹
-                  {lineTotal.toLocaleString("en-IN", {
+                  {totalWithGst.toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </div>
               </div>
@@ -277,7 +294,7 @@ const InvoiceItems = ({ items, setItems, inventory = [] }) => {
                 <button
                   type="button"
                   onClick={() => removeItem(item.id)}
-                  disabled={item.length === 1}
+                  disabled={items.length === 1}
                   title="Remove item"
                   className="w-full flex items-center justify-center gap-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
