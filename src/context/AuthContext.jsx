@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
@@ -27,12 +28,17 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     return signOut(auth);
-  }
+  };
+
+  const verifyEmail = (user = auth.currentUser) => {
+    if (!user) return Promise.reject(new Error("No user found."));
+    return sendEmailVerification(user);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-        setCurrentUser(user);
-        setLoading(false);
+      setCurrentUser(user);
+      setLoading(false);
     });
     return unsubscribe;
   }, []);
@@ -42,11 +48,12 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
+    verifyEmail,
   };
 
   return (
     <AuthContext.Provider value={value}>
-        {!loading && children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

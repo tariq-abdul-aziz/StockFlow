@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
 
-  if (!currentUser) {
+  if (!currentUser || !currentUser.emailVerified) {
     return <Navigate to="/" replace />;
   }
 

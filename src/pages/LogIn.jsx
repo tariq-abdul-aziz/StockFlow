@@ -6,9 +6,11 @@ const LoginIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
+  const [unverifiedUser, setUnverifiedUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login, signup } = useAuth();
+  const { login, signup, logout, verifyEmail } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -20,8 +22,21 @@ const LoginIn = () => {
 
     try {
       setError("");
+      setInfoMessage("");
+      setUnverifiedUser(null);
       setIsSubmitting(true);
-      await login(email, password);
+
+      const userCredential = await login(email, password);
+      await userCredential.user.reload();
+
+      if (!userCredential.user.emailVerified) {
+        setUnverifiedUser(userCredential.user);
+        setError(
+          "Your email is not verified yet. Please check your inbox (and spam folder) for the verification link.",
+        );
+        await logout();
+        return;
+      }
       localStorage.removeItem("defaultInvoiceNotes");
       navigate("/dashboard");
     } catch (err) {
@@ -47,18 +62,25 @@ const LoginIn = () => {
       setError("Password enter both email and password.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
     try {
       setError("");
+      setInfoMessage("");
+      setUnverifiedUser(null);
       setIsSubmitting(true);
-      await signup(email, password);
-      alert("Account created successfully!");
-      localStorage.removeItem("defaultInvoiceNotes");
-      navigate("/dashboard");
+
+      const userCredential = await signup(email, password);
+      await verifyEmail(userCredential.user);
+      await logout();
+
+      setInfoMessage(
+        `Verification link sent to ${email}. Please verify your email before logging in.`,
+      );
+      setPassword("");
     } catch (err) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
@@ -66,6 +88,35 @@ const LoginIn = () => {
       } else {
         setError(err.message || "Failed to create account.");
       }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email || !password || isSubmitting) {
+      setError(
+        "Please enter your email and password above, then click Resend.",
+      );
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const cred = await login(email, password);
+      await verifyEmail(cred.user);
+      await logout();
+      setError("");
+      setInfoMessage(
+        `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,
+      );
+      setUnverifiedUser(null);
+    } catch (err) {
+      console.error(err);
+      setError(
+        err.code === "auth/too-many-requests"
+          ? "Too many requests. Please wait a minute before resending."
+          : "Failed to resend verification email. Check your credentials and try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -84,10 +135,30 @@ const LoginIn = () => {
 
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs">
-              {error}
+              <p>{error}</p>
+              {unverifiedUser && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isSubmitting}
+                  className="underline font-semibold text-red-700 hover:text-red-900 cursor-pointer"
+                >
+                  Resend Verification Email
+                </button>
+              )}
             </div>
           )}
-          <form onSubmit={handleLogin} autoComplete="off" className="flex flex-col gap-3">
+
+          {infoMessage && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-xs">
+              {infoMessage}
+            </div>
+          )}
+          <form
+            onSubmit={handleLogin}
+            autoComplete="off"
+            className="flex flex-col gap-3"
+          >
             <div>
               <label className="text-xs font-medium text-gray-600">
                 Email Address

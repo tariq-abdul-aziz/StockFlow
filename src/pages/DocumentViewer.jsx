@@ -308,7 +308,7 @@ const DocumentViewer = ({ type = "invoice" }) => {
 
                 return (
                   <tr key={item.id || idx} className="even:bg-gray-50/50">
-                    <td className="border border-gray-300 px-3 py-3 font-medium text-gray-900 text-left break-words">
+                    <td className="border border-gray-300 px-3 py-3 font-medium text-gray-900 text-left">
                       <div>{item.product || "Untitled Product"}</div>
                       <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-gray-500 font-normal mt-1">
                         {item.hsn && <span>HSN: {item.hsn}</span>}
