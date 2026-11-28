@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const LoginIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [unverifiedUser, setUnverifiedUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login, signup, logout, verifyEmail } = useAuth();
+  const { login, signup, logout, verifyEmail, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -87,6 +89,41 @@ const LoginIn = () => {
         setError("This email addresss is already in use.");
       } else {
         setError(err.message || "Failed to create account.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setError(
+        "Please enter your email address above first, then click Forgot Password.",
+      );
+      setInfoMessage("");
+      return;
+    }
+
+    try {
+      setError("");
+      setInfoMessage("");
+      setUnverifiedUser(null);
+      setIsSubmitting(true);
+
+      await resetPassword(email.trim());
+      setInfoMessage(
+        `Password reset link sent to ${email.trim()}. Check your inbox (and spam folder) to set a new password.`,
+      );
+    } catch (err) {
+      console.error(err);
+      if (err.code === "auth/invalid-email") {
+        setError("Please enter a valid emailaddress.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError(
+          "Too many requests. Please wait a minute before trying again.",
+        );
+      } else {
+        setError(err.message || "Failed to send password reset email.");
       }
     } finally {
       setIsSubmitting(false);
@@ -174,17 +211,37 @@ const LoginIn = () => {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-600">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500"
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-600">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isSubmitting}
+                  className="text-xs font-medium text-blue-600 hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+              <div className="relative mt-1">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm outline-none focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-3 mt-3">
